@@ -92,3 +92,8 @@ git remote add origin https://github.com/<your-user>/freshsave.git
 git push -u origin main
 ```
 `.gitignore` keeps the 21 MB Kaggle file, the trained models and the app's saved state out of the repository; anyone who clones it re-creates them with the three commands above.
+
+## Working with Git (VS Code <-> GitHub)
+- Before you start working: **Sync Changes** in VS Code (or `git pull`) to get the newest code.
+- After you edit: Source Control icon > write a message > **Commit** > **Sync Changes** (or `git add .`, `git commit -m "message"`, `git push`).
+- Files kept out of Git on purpose (see `.gitignore`): the Kaggle CSV, trained models and the app's saved state. After a fresh clone, put the Kaggle file in `data/raw/` and run `python src/train.py`.
