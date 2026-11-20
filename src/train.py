@@ -53,24 +53,31 @@ def thin(n, keep=150):
     return np.unique(np.linspace(0, n - 1, min(keep, n)).astype(int))
 
 
-def main():
+def main(raw=None, progress=print):
+    """Train and test every model. Called two ways:
+         python src/train.py        -> reads the Kaggle file from data/raw/ and prints the progress
+         the app's Setup tab        -> passes the file you uploaded (raw) and a function that shows the progress
+    """
     t0 = time.time()
     C.MODELS_DIR.mkdir(exist_ok=True); C.POWERBI_DIR.mkdir(exist_ok=True)
 
-    print("1/6 Loading Kaggle file ...")
-    raw = F.load_raw()
+    progress("1/6 Loading the Kaggle data ...")
+    raw = F.load_raw() if raw is None else raw
+    problems = F.validate_raw(raw)
+    if problems:
+        raise ValueError(" ".join(problems))
     batches = F.prepare_batches(raw)
     # Strict time-based split. The demo store's 2024 batches fall in the TEST period, so they are never trained on.
     train_b = batches[batches["transaction_date"] < C.SPLIT_DATE]
     test_b = batches[batches["transaction_date"] >= C.SPLIT_DATE]
-    print(f"    raw rows {len(raw):,} | fresh batches {len(batches):,} | train {len(train_b):,} | test {len(test_b):,}")
+    progress(f"    raw rows {len(raw):,} | fresh batches {len(batches):,} | train {len(train_b):,} | test {len(test_b):,}")
 
-    print("2/6 Simulating evening snapshots ...")
+    progress("2/6 Simulating evening snapshots ...")
     tr = evening_snapshots(train_b, C.SEED)
     te = evening_snapshots(test_b, C.SEED + 1)
     Xtr, names = F.build_X(tr); ytr = tr["at_risk"].to_numpy()
     Xte, _ = F.build_X(te);     yte = te["at_risk"].to_numpy()
-    print(f"    snapshot rows: train {len(tr):,} | test {len(te):,} | features {len(names)}")
+    progress(f"    snapshot rows: train {len(tr):,} | test {len(te):,} | features {len(names)}")
 
     # data profile for Tab 4
     F.skew_table(tr).to_csv(C.MODELS_DIR / "skewness.csv", index=False)
@@ -86,7 +93,7 @@ def main():
                "category_counts": batches["category"].value_counts().to_dict()},
               open(C.MODELS_DIR / "data_profile.json", "w"), indent=2)
 
-    print("3/6 Tuning + training both models (a few minutes) ...")
+    progress("3/6 Tuning + training both models (a few minutes) ...")
     # Tuning runs on a SAMPLE of batches (fast). Folds are grouped by batch so one batch never sits in
     # both the training fold and the validation fold (that would make scores look too good).
     rng = np.random.default_rng(C.SEED)
@@ -98,7 +105,7 @@ def main():
         search = GridSearchCV(m.base_estimator(), m.PARAM_GRID, cv=cv, scoring="f1")
         search.fit(Xtr[sub], ytr[sub], groups=groups)
         best[name] = search.best_params_
-    print("    best settings:", " | ".join(f"{n}: {p}" for n, p in best.items()))
+    progress("    best settings: " + " | ".join(f"{n}: {p}" for n, p in best.items()))
 
     for name, m in REGISTRY.items():
         X_fit, y_fit = m.training_rows(Xtr, ytr, rng)        # the tree uses every row, KNN a sample (see config.py)
@@ -108,7 +115,7 @@ def main():
         joblib.dump(est, C.MODELS_DIR / m.FILE)
     json.dump(names, open(C.MODELS_DIR / "feature_names.json", "w"))
 
-    print("4/6 Evaluating on 2024 ...")
+    progress("4/6 Evaluating on 2024 ...")
     probs, pred_ms = {}, {}
     for name, m in models.items():
         t = time.time(); probs[name] = m.predict_proba(Xte)[:, 1]
@@ -142,7 +149,7 @@ def main():
                                final_waste_cost=te["final_waste_cost"])
     test_out.to_csv(C.MODELS_DIR / "test_predictions.csv.gz", index=False, compression="gzip")  # for threshold slider + cost view
 
-    print("5/6 Feature importance ...")
+    progress("5/6 Feature importance ...")
     s = rng.choice(len(Xte), size=3000, replace=False)
     imp = pd.DataFrame({"feature": names})
     for name, m in REGISTRY.items():
@@ -156,9 +163,13 @@ def main():
            f"at-risk batch turns into waste.")
     json.dump({"active": winner, "winner": winner, "why": why}, open(C.MODELS_DIR / "active_model.json", "w"))
     metrics.to_csv(C.POWERBI_DIR / "model_comparison.csv", index=False)
-    print("\n6/6 RESULT (all stores, 2024 test)\n",
-          metrics[metrics["view"] == "All stores 2024"][["model", "accuracy", "precision", "recall", "f1", "roc_auc", "train_seconds"]].round(3).to_string(index=False))
-    print("\nWinner:", winner, "-", why, f"\nDone in {time.time()-t0:.0f}s")
+    progress("6/6 Result (all stores, 2024 test)")
+    progress(metrics[metrics["view"] == "All stores 2024"][["model", "accuracy", "precision", "recall", "f1", "roc_auc", "train_seconds"]]
+             .round(3).to_string(index=False))
+    progress(f"Winner: {winner} - {why}")
+    json.dump({"rows": int(len(raw)), "stores": int(raw["store_id"].nunique()), "trained_at": time.strftime("%d %b %Y, %H:%M"),
+               "seconds": round(time.time() - t0)}, open(C.MODELS_DIR / "trained_on.json", "w"))
+    progress(f"Done in {time.time()-t0:.0f}s")
 
 
 if __name__ == "__main__":

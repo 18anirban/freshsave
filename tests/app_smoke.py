@@ -68,6 +68,12 @@ def load_days(n, master=True):
 
 
 if __name__ == "__main__":
+    import shutil, tempfile
+    keep = Path(tempfile.mkdtemp()); shutil.copytree(C.MODELS_DIR, keep / "m")
+    (C.MODELS_DIR / "knn.joblib").rename(keep / "knn.bak")                       # models "missing" -> only Box 1 is shown
+    run_app();                                              print("no trained models      : OK (only the train box)")
+    (keep / "knn.bak").rename(C.MODELS_DIR / "knn.joblib")
+    run_app(press=["Train on the file already"]);           assert (C.MODELS_DIR / "trained_on.json").exists(); print("train from Box 1       : OK")
     store.reset_all(); M.remove_master(); run_app();       print("empty state, no master : OK")
     run_app(press=["Load the sample master"]);              assert M.master_exists(); print("load sample master     : OK")
     run_app(press=["Remove the master"]);                   assert not M.master_exists(); print("remove master          : OK")

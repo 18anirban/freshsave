@@ -31,16 +31,22 @@ st.set_page_config(page_title="FreshSave", layout="wide")
 # ============================================================
 # STEP 1: STOP IF THE MODELS ARE NOT TRAINED YET
 # ------------------------------------------------------------
-# train.py creates the model files. The app never reads the Kaggle file itself.
+# The model files are made by Box 1 on the Setup tab (or by python src/train.py). Until they exist, only Box 1 is shown.
 # ============================================================
 if not helpers.models_ready():
     st.title("FreshSave")
-    st.error("The models have not been trained yet. Open a terminal in this folder and run:  python src/train.py")
+    if "flash" not in st.session_state:
+        st.session_state["flash"] = []
+    for kind, msg in st.session_state["flash"]:
+        getattr(st, kind)(msg)
+    st.session_state["flash"] = []
+    step_bar.render_step_bar(False, 0)
+    tab_setup.render_untrained()          # the app opens here until the models are trained
     st.stop()
 
 # ------------------------------------------------------------
 # WHAT WE DID IN STEP 1:
-# - Checked that every model file exists (Decision Tree and KNN) before drawing anything else.
+# - Checked that every model file exists (Decision Tree and KNN). If not, the app shows only the upload-and-train box.
 # ------------------------------------------------------------
 
 

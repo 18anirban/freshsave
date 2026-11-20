@@ -35,6 +35,27 @@ LOG_COLS = ["daily_demand", "qty_received", "qty_left", "units_sold_total", "obs
             "base_price", "cost_price"]
 
 
+RAW_REQUIRED = ["record_id", "store_id", "category", "product_name", "transaction_date", "initial_quantity",
+                "units_sold", "days_remaining_at_purchase", *STATIC_COLS]
+
+
+def validate_raw(df: pd.DataFrame):
+    """Check an uploaded Kaggle file before training. Returns a list of problems (empty = fine)."""
+    missing = [c for c in RAW_REQUIRED if c not in df.columns]
+    if missing:
+        return [f"Columns missing: {', '.join(missing)}. This does not look like the Kaggle 'Managing Perishable Inventory Data' file."]
+    problems = []
+    fresh = df[~df["category"].isin(C.DROP_CATEGORIES)]
+    if len(fresh) < 5000:
+        problems.append(f"Only {len(fresh):,} fresh-food rows. Training needs the full Kaggle file.")
+    dates = pd.to_datetime(fresh["transaction_date"], errors="coerce")
+    if dates.isna().any():
+        problems.append("Some transaction_date values are not dates.")
+    elif not ((dates < C.SPLIT_DATE).any() and (dates >= C.SPLIT_DATE).any()):
+        problems.append(f"The file needs rows before AND after {C.SPLIT_DATE} (the split between training and testing).")
+    return problems
+
+
 def load_raw(path=None) -> pd.DataFrame:
     return pd.read_csv(path or C.RAW_CSV)
 

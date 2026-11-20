@@ -22,7 +22,7 @@ A horizontal **step bar** at the top shows where you are: 1 Setup, 2 Upload day 
 
 | Tab | Who | What |
 |---|---|---|
-| 1. Setup | you / the store | upload the **master file** (every batch of the fortnight) and **choose the model** (KNN or Decision Tree). The other tabs wait for the master file |
+| 1. Setup | you / the store | three boxes: **Box 1** upload the master Kaggle data and train both models live; **Box 2** choose the model (KNN or Decision Tree); **Box 3** upload the fortnight's batch list (master file). The other tabs wait for Box 3 |
 | 2. Evening upload | store system / you in the demo | upload the day's file; checks, cleaning, comparison with the master file, upload history |
 | 3. Daily decisions | store manager | top 10-15 batches by money at stake, reason, suggested price, Approve / Change / Reject |
 | 4. Manager dashboard | manager, head office | opens after all 14 days: waste, **recommended order for the next 15 days**, predicted-vs-actual, override rate |
@@ -35,7 +35,7 @@ cd FreshSave
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-python src/train.py             # a few minutes: trains and tests both models (Decision Tree and KNN)
+python src/train.py             # optional: the app can also do this live (Setup tab, Box 1: upload the Kaggle file, click Train)
 python src/make_daily_files.py  # creates the 14 daily files + the master file (also in C:\Users\18ani\Downloads\DailyFiles-Retail)
 streamlit run app.py            # opens http://localhost:8501
 python -m pytest tests -q       # optional: 22 automated checks
@@ -44,7 +44,7 @@ python tests/app_smoke.py       # optional: runs every tab's code without a brow
 The Kaggle file must be at `data/raw/perishable_goods_management.csv` (Kaggle: "Managing Perishable Inventory Data").
 
 ## Demo script (about 10 minutes)
-1. Tab 1 (Setup): upload `Master_Fortnight_Batches.csv` (or click "Load the sample master file"), choose **Decision Tree** or **KNN**. The step bar turns green.
+1. Tab 1 (Setup): Box 1 upload the Kaggle file and click Train (a few minutes; or skip if already trained), Box 2 choose the model, Box 3 upload `Master_Fortnight_Batches.csv` (or click "Load the sample master file"), choose **Decision Tree** or **KNN**. The step bar turns green.
 2. Tab 2: upload `Day01_Sun.csv` -> checks and scoring happen. Tab 3: show the action list, approve some, change one, reject one, **Save**.
 3. Upload `Day02_Mon.csv` -> risks have moved (stock sold, days left fell). Scorecard appears.
 4. Click **Load ALL remaining days + auto-approve** (demo shortcut; those decisions are tagged `auto-demo`, say so).

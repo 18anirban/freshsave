@@ -73,6 +73,11 @@ def set_active_model(name: str):
     json.dump(info, open(p, "w"))
 
 
+def clear_model_cache():
+    """Call after training: the app must load the NEW model files, not the ones it remembered."""
+    _cache.clear()
+
+
 def load_model(name: str):
     if name not in _cache:
         _cache[name] = joblib.load(C.MODELS_DIR / MODEL_FILES[name])
