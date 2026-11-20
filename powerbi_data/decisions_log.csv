@@ -1,0 +1,196 @@
+day_no,date,batch_id,product_name,category,risk,suggested_markdown,decision,final_markdown,reposition,model_used,decided_by,decided_at
+1,2024-09-01,B097701,Lobster,Seafood,0.9134,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+1,2024-09-01,B087759,Cod,Seafood,0.6469,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:11
+1,2024-09-01,B048007,Salami,Deli,0.7632,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+1,2024-09-01,B009810,Soups,Ready_to_Eat,0.9085,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+1,2024-09-01,B043255,Shrimp,Seafood,0.8245,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+1,2024-09-01,B096830,Shrimp,Seafood,0.8294,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+1,2024-09-01,B054984,Turkey,Meat,0.4318,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:11
+1,2024-09-01,B005527,Tuna,Seafood,0.6675,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:11
+1,2024-09-01,B041381,Turkey Slices,Deli,0.5022,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:11
+1,2024-09-01,B024873,Turkey,Meat,0.8859,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+1,2024-09-01,B055667,Fresh Pasta,Ready_to_Eat,0.9444,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+1,2024-09-01,B029364,Soups,Ready_to_Eat,0.6863,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:11
+1,2024-09-01,B060696,Turkey Slices,Deli,0.8026,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+1,2024-09-01,B059379,Beef,Meat,0.4774,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:11
+1,2024-09-01,B035297,Cod,Seafood,0.9258,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+2,2024-09-02,B097701,Lobster,Seafood,0.9208,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+2,2024-09-02,B048007,Salami,Deli,0.9557,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+2,2024-09-02,B041381,Turkey Slices,Deli,0.7389,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+2,2024-09-02,B005527,Tuna,Seafood,0.838,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+2,2024-09-02,B043255,Shrimp,Seafood,0.9518,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+2,2024-09-02,B009810,Soups,Ready_to_Eat,0.982,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+2,2024-09-02,B059379,Beef,Meat,0.7866,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+2,2024-09-02,B087759,Cod,Seafood,0.5308,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:11
+2,2024-09-02,B024873,Turkey,Meat,0.9835,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+2,2024-09-02,B060696,Turkey Slices,Deli,0.9355,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+2,2024-09-02,B001142,Salmon,Seafood,0.7829,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+2,2024-09-02,B099334,Cream,Dairy,0.8527,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+2,2024-09-02,B017942,Cold Brew Coffee,Beverages,0.7094,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+2,2024-09-02,B024221,Beef,Meat,0.4815,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:11
+2,2024-09-02,B055667,Fresh Pasta,Ready_to_Eat,0.9685,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:11
+3,2024-09-03,B097701,Lobster,Seafood,0.8916,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+3,2024-09-03,B087759,Cod,Seafood,0.7496,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+3,2024-09-03,B043255,Shrimp,Seafood,0.987,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+3,2024-09-03,B009810,Soups,Ready_to_Eat,0.9951,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+3,2024-09-03,B048007,Salami,Deli,0.958,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+3,2024-09-03,B024873,Turkey,Meat,0.9936,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+3,2024-09-03,B001142,Salmon,Seafood,0.8842,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+3,2024-09-03,B060696,Turkey Slices,Deli,0.9477,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+3,2024-09-03,B005527,Tuna,Seafood,0.7778,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+3,2024-09-03,B038337,Beef,Meat,0.8853,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+3,2024-09-03,B099334,Cream,Dairy,0.8778,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+3,2024-09-03,B027183,Butter,Dairy,0.9061,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+3,2024-09-03,B059379,Beef,Meat,0.5838,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+3,2024-09-03,B092002,Shrimp,Seafood,0.8609,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+3,2024-09-03,B009438,Turkey Slices,Deli,0.8335,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+4,2024-09-04,B004580,Ground Beef,Meat,0.7286,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+4,2024-09-04,B077486,Pork,Meat,0.9372,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+4,2024-09-04,B054984,Turkey,Meat,0.7428,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+4,2024-09-04,B086716,Sandwiches,Ready_to_Eat,0.7969,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+4,2024-09-04,B046133,Beef,Meat,0.7914,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+4,2024-09-04,B070600,Crab,Seafood,0.7758,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+4,2024-09-04,B001142,Salmon,Seafood,0.9838,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+4,2024-09-04,B024873,Turkey,Meat,0.9975,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+4,2024-09-04,B060696,Turkey Slices,Deli,0.9888,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+4,2024-09-04,B070344,Fresh Pasta,Ready_to_Eat,0.7317,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+4,2024-09-04,B005527,Tuna,Seafood,0.8724,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+4,2024-09-04,B059379,Beef,Meat,0.8387,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+4,2024-09-04,B039543,Pastries,Bakery,0.8887,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+4,2024-09-04,B001078,Lobster,Seafood,0.5487,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+4,2024-09-04,B036818,Turkey,Meat,0.5003,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+5,2024-09-05,B004580,Ground Beef,Meat,0.964,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+5,2024-09-05,B061432,Sausages,Meat,0.4768,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+5,2024-09-05,B024157,Sausages,Meat,0.8225,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+5,2024-09-05,B036818,Turkey,Meat,0.8586,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+5,2024-09-05,B097364,Cod,Seafood,0.7475,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+5,2024-09-05,B086716,Sandwiches,Ready_to_Eat,0.944,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+5,2024-09-05,B077486,Pork,Meat,0.8111,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+5,2024-09-05,B046133,Beef,Meat,0.8824,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+5,2024-09-05,B060696,Turkey Slices,Deli,0.9979,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+5,2024-09-05,B001078,Lobster,Seafood,0.7102,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+5,2024-09-05,B024873,Turkey,Meat,0.9993,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+5,2024-09-05,B005527,Tuna,Seafood,0.9891,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+5,2024-09-05,B031469,Cottage Cheese,Dairy,0.9148,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+5,2024-09-05,B070600,Crab,Seafood,0.8393,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+5,2024-09-05,B001142,Salmon,Seafood,0.9939,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+6,2024-09-06,B004580,Ground Beef,Meat,0.9921,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+6,2024-09-06,B036818,Turkey,Meat,0.9587,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+6,2024-09-06,B097364,Cod,Seafood,0.9637,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+6,2024-09-06,B024157,Sausages,Meat,0.9137,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+6,2024-09-06,B046133,Beef,Meat,0.9753,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+6,2024-09-06,B075215,Salmon,Seafood,0.5456,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+6,2024-09-06,B077486,Pork,Meat,0.8606,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+6,2024-09-06,B029722,Yogurt,Dairy,0.9094,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+6,2024-09-06,B001078,Lobster,Seafood,0.8459,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+6,2024-09-06,B031469,Cottage Cheese,Dairy,0.9833,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+6,2024-09-06,B015247,Cod,Seafood,0.5433,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+6,2024-09-06,B024873,Turkey,Meat,0.9998,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+6,2024-09-06,B060696,Turkey Slices,Deli,0.9988,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+6,2024-09-06,B070600,Crab,Seafood,0.9558,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+6,2024-09-06,B035070,Muffins,Bakery,0.8548,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+7,2024-09-07,B036818,Turkey,Meat,0.9827,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+7,2024-09-07,B046133,Beef,Meat,0.9956,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+7,2024-09-07,B024157,Sausages,Meat,0.9063,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+7,2024-09-07,B029722,Yogurt,Dairy,0.9333,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+7,2024-09-07,B077486,Pork,Meat,0.8796,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+7,2024-09-07,B035070,Muffins,Bakery,0.9743,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+7,2024-09-07,B031469,Cottage Cheese,Dairy,0.9883,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+7,2024-09-07,B060696,Turkey Slices,Deli,0.9994,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+7,2024-09-07,B001078,Lobster,Seafood,0.7573,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+7,2024-09-07,B059247,Turkey Slices,Deli,0.7898,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+7,2024-09-07,B002279,Beef,Meat,0.9403,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+7,2024-09-07,B099902,Ground Beef,Meat,0.8235,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+7,2024-09-07,B028708,Kombucha,Beverages,1.0,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+7,2024-09-07,B099334,Cream,Dairy,0.864,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+7,2024-09-07,B009438,Turkey Slices,Deli,0.9783,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+8,2024-09-08,B078250,Salmon,Seafood,0.7821,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+8,2024-09-08,B028355,Sausages,Meat,0.8515,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+8,2024-09-08,B099024,Salmon,Seafood,0.8059,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+8,2024-09-08,B099032,Chicken,Meat,0.4945,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+8,2024-09-08,B079825,Salmon,Seafood,0.4219,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+8,2024-09-08,B093533,Ham,Deli,0.784,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+8,2024-09-08,B003169,Turkey,Meat,0.8083,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+8,2024-09-08,B034370,Salmon,Seafood,0.5525,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+8,2024-09-08,B060099,Tilapia,Seafood,0.4155,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+8,2024-09-08,B015366,Sandwiches,Ready_to_Eat,0.7474,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+8,2024-09-08,B047456,Tuna,Seafood,0.5037,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+8,2024-09-08,B031254,Sausages,Meat,0.4142,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+8,2024-09-08,B079057,Tilapia,Seafood,0.8821,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+8,2024-09-08,B077248,Tomatoes,Produce,0.8499,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+8,2024-09-08,B012098,Salami,Deli,0.6827,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+9,2024-09-09,B078250,Salmon,Seafood,0.892,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+9,2024-09-09,B031746,Lobster,Seafood,0.6289,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+9,2024-09-09,B028355,Sausages,Meat,0.8493,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+9,2024-09-09,B099032,Chicken,Meat,0.6174,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+9,2024-09-09,B099024,Salmon,Seafood,0.927,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+9,2024-09-09,B060099,Tilapia,Seafood,0.5933,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+9,2024-09-09,B093533,Ham,Deli,0.9523,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+9,2024-09-09,B015366,Sandwiches,Ready_to_Eat,0.8305,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+9,2024-09-09,B047456,Tuna,Seafood,0.5113,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+9,2024-09-09,B034370,Salmon,Seafood,0.587,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+9,2024-09-09,B095718,Shrimp,Seafood,0.5479,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+9,2024-09-09,B089178,Milk Alternatives,Beverages,0.9349,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+9,2024-09-09,B012098,Salami,Deli,0.6604,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+9,2024-09-09,B088548,Salmon,Seafood,0.9292,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+9,2024-09-09,B036818,Turkey,Meat,0.9968,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+10,2024-09-10,B031746,Lobster,Seafood,0.887,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+10,2024-09-10,B060099,Tilapia,Seafood,0.901,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+10,2024-09-10,B047456,Tuna,Seafood,0.8838,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+10,2024-09-10,B099024,Salmon,Seafood,0.991,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+10,2024-09-10,B028355,Sausages,Meat,0.7957,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+10,2024-09-10,B093533,Ham,Deli,0.9566,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+10,2024-09-10,B034370,Salmon,Seafood,0.8106,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+10,2024-09-10,B015366,Sandwiches,Ready_to_Eat,0.9626,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+10,2024-09-10,B012098,Salami,Deli,0.8258,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+10,2024-09-10,B089178,Milk Alternatives,Beverages,0.982,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+10,2024-09-10,B049778,Chicken,Meat,0.7146,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+10,2024-09-10,B070111,Cream,Dairy,0.9032,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+10,2024-09-10,B079057,Tilapia,Seafood,0.9756,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+10,2024-09-10,B088548,Salmon,Seafood,0.9809,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+10,2024-09-10,B031780,Sausages,Meat,0.8889,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+11,2024-09-11,B034754,Shrimp,Seafood,0.7937,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+11,2024-09-11,B015233,Cod,Seafood,0.6793,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+11,2024-09-11,B031746,Lobster,Seafood,0.8502,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+11,2024-09-11,B059315,Salmon,Seafood,0.9259,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+11,2024-09-11,B056960,Tuna,Seafood,0.7904,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+11,2024-09-11,B060099,Tilapia,Seafood,0.9862,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+11,2024-09-11,B030053,Crab,Seafood,0.9203,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+11,2024-09-11,B043890,Tilapia,Seafood,0.9617,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+11,2024-09-11,B047456,Tuna,Seafood,0.955,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+11,2024-09-11,B000254,Pork,Meat,0.8065,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+11,2024-09-11,B072553,Tilapia,Seafood,0.8996,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+11,2024-09-11,B028209,Sausages,Meat,0.8693,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+11,2024-09-11,B028355,Sausages,Meat,0.9079,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+11,2024-09-11,B050187,Soups,Ready_to_Eat,0.8104,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+11,2024-09-11,B099032,Chicken,Meat,0.594,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+12,2024-09-12,B015233,Cod,Seafood,0.9137,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+12,2024-09-12,B034754,Shrimp,Seafood,0.8541,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+12,2024-09-12,B031746,Lobster,Seafood,0.9698,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+12,2024-09-12,B056960,Tuna,Seafood,0.956,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+12,2024-09-12,B059315,Salmon,Seafood,0.9655,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+12,2024-09-12,B099032,Chicken,Meat,0.8941,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+12,2024-09-12,B072553,Tilapia,Seafood,0.9491,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+12,2024-09-12,B047456,Tuna,Seafood,0.987,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+12,2024-09-12,B098380,Fresh Pasta,Ready_to_Eat,0.8941,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+12,2024-09-12,B028355,Sausages,Meat,0.8929,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+12,2024-09-12,B008591,Wraps,Ready_to_Eat,0.8819,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+12,2024-09-12,B044660,Turkey,Meat,0.7316,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+12,2024-09-12,B045249,Crab,Seafood,0.8696,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+12,2024-09-12,B043890,Tilapia,Seafood,0.7867,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+12,2024-09-12,B075372,Tilapia,Seafood,0.6196,20,Approve,20,False,ANN,auto-demo,2026-11-20 10:49:12
+13,2024-09-13,B015233,Cod,Seafood,0.9754,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+13,2024-09-13,B031746,Lobster,Seafood,0.9833,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+13,2024-09-13,B034754,Shrimp,Seafood,0.9012,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+13,2024-09-13,B056960,Tuna,Seafood,0.9794,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+13,2024-09-13,B059315,Salmon,Seafood,0.9901,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+13,2024-09-13,B099032,Chicken,Meat,0.9373,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+13,2024-09-13,B072553,Tilapia,Seafood,0.9899,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+13,2024-09-13,B098380,Fresh Pasta,Ready_to_Eat,0.9777,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+13,2024-09-13,B015720,Cod,Seafood,0.9614,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+13,2024-09-13,B028355,Sausages,Meat,0.9153,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+13,2024-09-13,B008591,Wraps,Ready_to_Eat,0.9349,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+13,2024-09-13,B045249,Crab,Seafood,0.9332,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+13,2024-09-13,B030053,Crab,Seafood,0.7304,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+13,2024-09-13,B043890,Tilapia,Seafood,0.8434,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
+13,2024-09-13,B000254,Pork,Meat,0.7437,40,Approve,40,True,ANN,auto-demo,2026-11-20 10:49:12
