@@ -17,9 +17,10 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config as C
-from src import scoring, rules
+from src import scoring, rules, order_plan
+from src import master as M
 
-UP = C.STATE_DIR / "uploads"
+UP =C.STATE_DIR / "uploads"
 DEC = C.STATE_DIR / "decisions.csv"
 LOG = C.STATE_DIR / "upload_log.csv"
 DEC_COLS = ["day_no", "date", "batch_id", "product_name", "category", "risk", "suggested_markdown", "decision",
@@ -194,4 +195,8 @@ def refresh(model_name=None, rules_cfg=None, uplift=None):
     effects = decision_effects(scores, outcomes, decisions, uplift)
     summary = daily_summary(scores, outcomes, decisions, effects)
     export_powerbi(scores, outcomes, decisions, effects, summary)
-    return {"scores": scores, "outcomes": outcomes, "decisions": decisions, "effects": effects, "summary": summary}
+    # order plan for the next 15 days (per product); uses the master file for batch life when it is saved
+    plan = order_plan.build_order_plan(scores, outcomes, M.load_master(), rules_cfg or C.RULES)
+    order_plan.display_plan(plan).to_csv(C.POWERBI_DIR / "order_plan.csv", index=False)
+    return {"scores": scores, "outcomes": outcomes, "decisions": decisions, "effects": effects, "summary": summary,
+            "plan": plan}

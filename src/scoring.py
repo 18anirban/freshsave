@@ -12,13 +12,13 @@ import joblib
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config as C
 from src import features as F
+from src.models import MODEL_FILES          # {"Decision Tree": "decision_tree.joblib", "KNN": "knn.joblib"}
 
 REQUIRED = ["date", "day_no", "batch_id", "store_id", "category", "product_name", "delivered_date", "expiry_date",
             "selling_days_elapsed", "days_left", "qty_received", "qty_left", "units_sold_today", "units_sold_total",
             "base_price", "current_price", "cost_price"] + [c for c in F.STATIC_COLS if c not in ("base_price", "cost_price")]
 NUMERIC = [c for c in REQUIRED if c not in ("date", "batch_id", "store_id", "category", "product_name",
                                               "delivered_date", "expiry_date")]
-MODEL_FILES = {"Decision Tree": "decision_tree.joblib", "ANN": "ann.joblib"}
 _cache = {}
 
 
@@ -62,7 +62,8 @@ def validate_and_clean(df: pd.DataFrame):
 
 def active_model_name() -> str:
     p = C.MODELS_DIR / "active_model.json"
-    return json.load(open(p))["active"] if p.exists() else "Decision Tree"
+    name = json.load(open(p))["active"] if p.exists() else "Decision Tree"
+    return name if name in MODEL_FILES else "Decision Tree"     # an old file may still name a model that no longer exists
 
 
 def set_active_model(name: str):

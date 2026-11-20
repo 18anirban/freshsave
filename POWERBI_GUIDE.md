@@ -13,6 +13,7 @@ the app rewrites these files after every upload, decision or model switch (the R
 | `decision_effects.csv` | one decision on a finished batch (ESTIMATED) | batch_id, waste_cost_avoided, revenue_recovered, margin_given_away, net_cash_effect |
 | `daily_summary.csv` | one day | batches_on_shelf, at_risk_flagged, money_at_stake, discard_tonight, discard_cost, closed_batches, waste_cost_closed, approved/changed/rejected |
 | `calendar.csv` | one day | day_no, date, weekday, week, delivery |
+| `order_plan.csv` | one product (recommended order for the next 15 days) | Product, Category, Sold per day, Batch life (days), Waste %, Waste risk, Order for 15 days, Deliveries, Units per delivery, Order cost |
 | `model_comparison.csv` | one model x one test view | accuracy, precision, recall, f1, roc_auc, specificity, mcc, log_loss, brier, tp/fp/tn/fn, train_seconds |
 
 ## 2. Load and clean (Power Query)

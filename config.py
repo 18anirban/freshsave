@@ -28,3 +28,18 @@ RULES = {"low": 0.40, "high": 0.70, "md_mid": 20, "md_high": 40}
 # ASSUMPTION (not measured): a markdown of m% raises the remaining daily sales by UPLIFT * m%
 UPLIFT_PER_MARKDOWN = 0.75        # e.g. 20% off -> 15% more sales
 FALSE_ALARM_MARKDOWN_PCT = 20     # cost view: a false alarm costs this % of the price on the stock marked down
+
+# ---- Models (the two the app offers; code lives in src/models/) ----
+KNN_MAX_TRAIN_ROWS = 60000        # KNN compares every new batch with its stored cases, so we keep at most this many
+
+# ---- Master file (Setup tab): the list of every batch delivered in the fortnight ----
+MASTER_FILE = STATE_DIR / "master.csv"                        # the cleaned copy the app remembers
+MASTER_SAMPLE = DAILY_DIR / "Master_Fortnight_Batches.csv"    # sample master file made by make_daily_files.py
+
+# ---- Order plan for the next days (Manager dashboard) ----
+PLAN_DAYS = 15                    # how many days ahead the manager orders for
+PLAN_SAFETY_BUFFER = 0.05         # 5% extra so the shelf does not run empty
+PLAN_FILL_LOW_RISK = 0.90         # one delivery = 90% of what can be sold before expiry (safe products)
+PLAN_FILL_HIGH_RISK = 0.70        # one delivery = 70% of it for products that waste a lot (smaller, more often)
+PLAN_HIGH_RISK_SHARE = 0.50       # a product is "high risk" if the model flags >= this share of its shelf-evenings
+PLAN_HIGH_WASTE_PCT = 20.0        # ... or if it really wasted this % of what it received

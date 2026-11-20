@@ -5,22 +5,20 @@ In plain words:
   1. Read the Kaggle history file (all 50 stores).
   2. Keep fresh food only; label = "at risk" if 20%+ of the batch ended up wasted.
   3. Simulate each batch's evening-by-evening stock (simulate.py).
-  4. Train TWO models on 2023: Decision Tree and ANN (neural network).
+  4. Train TWO models on 2023: Decision Tree and KNN (the code of each is in src/models/).
   5. Test both on 2024 (the "future") and save every metric the app shows.
   6. Pick the winner (best recall + F1) as the default model.
 The app never reads the Kaggle file - it only reads what this script saves in models/.
+
+Adding a model later: write one more file in src/models/ and add it to REGISTRY. This script
+loops over REGISTRY, so nothing else here needs to change.
 """
 import sys, json, time
 from pathlib import Path
 import numpy as np
 import pandas as pd
 import joblib
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.neural_network import MLPClassifier
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV, GroupKFold
-from sklearn.inspection import permutation_importance
 from sklearn.calibration import calibration_curve
 from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score, roc_auc_score,
                              balanced_accuracy_score, matthews_corrcoef, log_loss, brier_score_loss,
@@ -29,6 +27,7 @@ from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_s
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config as C
 from src import features as F
+from src.models import REGISTRY
 from src.simulate import build_long
 
 
@@ -93,25 +92,20 @@ def main():
     rng = np.random.default_rng(C.SEED)
     sub = tr["batch_id"].isin(rng.choice(tr["batch_id"].unique(), size=6000, replace=False)).to_numpy()
     cv, groups = GroupKFold(n_splits=3), tr.loc[sub, "batch_id"]
-    dt_s = GridSearchCV(DecisionTreeClassifier(random_state=C.SEED),
-                        {"max_depth": [6, 10, 14], "min_samples_leaf": [20, 100]}, cv=cv, scoring="f1")
-    dt_s.fit(Xtr[sub], ytr[sub], groups=groups)
-    ann_s = GridSearchCV(Pipeline([("scale", StandardScaler()),     # only the ANN needs scaled inputs
-                                   ("mlp", MLPClassifier(early_stopping=True, max_iter=150, random_state=C.SEED))]),
-                         {"mlp__hidden_layer_sizes": [(32,), (64, 32)], "mlp__alpha": [1e-4, 1e-2]}, cv=cv, scoring="f1")
-    ann_s.fit(Xtr[sub], ytr[sub], groups=groups)
-    print("    best Decision Tree:", dt_s.best_params_, "| best ANN:", ann_s.best_params_)
+    # Each model file in src/models/ says which settings to try (PARAM_GRID) and how to build the final model.
+    best, models, train_time = {}, {}, {}
+    for name, m in REGISTRY.items():
+        search = GridSearchCV(m.base_estimator(), m.PARAM_GRID, cv=cv, scoring="f1")
+        search.fit(Xtr[sub], ytr[sub], groups=groups)
+        best[name] = search.best_params_
+    print("    best settings:", " | ".join(f"{n}: {p}" for n, p in best.items()))
 
-    models, train_time = {}, {}
-    for name, est in [("Decision Tree", DecisionTreeClassifier(random_state=C.SEED, **dt_s.best_params_)),
-                      ("ANN", Pipeline([("scale", StandardScaler()),
-                                        ("mlp", MLPClassifier(early_stopping=True, max_iter=150, random_state=C.SEED,
-                                                              hidden_layer_sizes=ann_s.best_params_["mlp__hidden_layer_sizes"],
-                                                              alpha=ann_s.best_params_["mlp__alpha"]))]))]:
-        t = time.time(); est.fit(Xtr, ytr); train_time[name] = time.time() - t     # final fit on ALL 2023 rows
+    for name, m in REGISTRY.items():
+        X_fit, y_fit = m.training_rows(Xtr, ytr, rng)        # the tree uses every row, KNN a sample (see config.py)
+        est = m.build(best[name])
+        t = time.time(); est.fit(X_fit, y_fit); train_time[name] = time.time() - t
         models[name] = est
-    joblib.dump(models["Decision Tree"], C.MODELS_DIR / "decision_tree.joblib")
-    joblib.dump(models["ANN"], C.MODELS_DIR / "ann.joblib")
+        joblib.dump(est, C.MODELS_DIR / m.FILE)
     json.dump(names, open(C.MODELS_DIR / "feature_names.json", "w"))
 
     print("4/6 Evaluating on 2024 ...")
@@ -141,17 +135,19 @@ def main():
     metrics.to_csv(C.MODELS_DIR / "metrics_summary.csv", index=False)
     pd.DataFrame(by_day).to_csv(C.MODELS_DIR / "metrics_by_evening.csv", index=False)
     json.dump(curves, open(C.MODELS_DIR / "curves.json", "w"))
-    pd.DataFrame({"store_id": te["store_id"], "evening": te["selling_days_elapsed"], "y": yte,
-                  "p_dt": probs["Decision Tree"], "p_ann": probs["ANN"], "qty_left": te["qty_left"],
-                  "cost_price": te["cost_price"], "base_price": te["base_price"],
-                  "final_waste_cost": te["final_waste_cost"]}
-                 ).to_csv(C.MODELS_DIR / "test_predictions.csv.gz", index=False, compression="gzip")  # for threshold slider + cost view
+    test_out = pd.DataFrame({"store_id": te["store_id"], "evening": te["selling_days_elapsed"], "y": yte})
+    for name, m in REGISTRY.items():
+        test_out[m.PROB_COLUMN] = probs[name]                  # p_dt, p_knn
+    test_out = test_out.assign(qty_left=te["qty_left"], cost_price=te["cost_price"], base_price=te["base_price"],
+                               final_waste_cost=te["final_waste_cost"])
+    test_out.to_csv(C.MODELS_DIR / "test_predictions.csv.gz", index=False, compression="gzip")  # for threshold slider + cost view
 
     print("5/6 Feature importance ...")
     s = rng.choice(len(Xte), size=3000, replace=False)
-    pi = permutation_importance(models["ANN"], Xte.iloc[s], yte[s], n_repeats=2, random_state=C.SEED, scoring="f1")
-    pd.DataFrame({"feature": names, "decision_tree": models["Decision Tree"].feature_importances_,
-                  "ann_permutation": pi.importances_mean}).to_csv(C.MODELS_DIR / "feature_importance.csv", index=False)
+    imp = pd.DataFrame({"feature": names})
+    for name, m in REGISTRY.items():
+        imp[m.IMPORTANCE_COLUMN] = m.importance(models[name], names, Xte.iloc[s], yte[s]).to_numpy()
+    imp.to_csv(C.MODELS_DIR / "feature_importance.csv", index=False)
 
     allv = metrics[metrics["view"] == "All stores 2024"].set_index("model")
     winner = ((allv["recall"] + allv["f1"]) / 2).idxmax()   # recall matters most: a missed batch becomes waste

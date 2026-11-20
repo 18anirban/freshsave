@@ -9,6 +9,9 @@ Each file = what is on the shelf at closing time that evening (one row per batch
                              and the final total sold (the simulated path ends exactly on it).
   SIMULATED:                 delivery day, compressed shelf life, the quantity left on each evening.
 There are NO result columns (waste %, profit) - a real store would not know them that evening.
+
+It also writes Master_Fortnight_Batches.csv: one row per batch of the fortnight (delivery date, expiry date,
+quantity received, prices). That is the file you upload first, on the Setup tab.
 """
 import os, sys
 from pathlib import Path
@@ -18,8 +21,10 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config as C
 from src import features as F
+from src import master as M
 from src.simulate import build_long
 
+MASTER_NAME = "Master_Fortnight_Batches.csv"
 DELIVERIES = sorted(list(C.DELIVERY_SUNDAYS) + list(C.DELIVERY_WEDNESDAYS))   # [1, 4, 8, 11]
 
 
@@ -58,6 +63,12 @@ def make_files(out_dirs):
             folder.mkdir(parents=True, exist_ok=True)
             day.to_csv(folder / name, index=False, date_format="%Y-%m-%d")
         written.append((name, len(day), int((day["days_left"] == 0).sum())))
+
+    # The master file = the fortnight's batch list (upload it on the Setup tab). One row per batch.
+    master = M.master_from_days([long[cols]])
+    for folder in out_dirs:
+        master.to_csv(folder / MASTER_NAME, index=False, date_format="%Y-%m-%d")
+    written.append((MASTER_NAME, len(master), 0))
     return b, written
 
 
