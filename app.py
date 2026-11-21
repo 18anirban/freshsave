@@ -18,15 +18,7 @@ def table(df, fmt=None):
 
 
 # ---------------------------------------------------------------- sections
-def headline(r):
-    mt, w = r["metrics"], r["winner"]
-    st.success(f"Best model: **{w}**  -  it catches {pct(mt.loc[w, 'recall'])} of batches that really end up wasted, "
-               f"with {pct(mt.loc[w, 'accuracy'])} accuracy on data it has never seen.")
-    c = st.columns(5)
-    for col, (label, m) in zip(c, [("Accuracy", "accuracy"), ("Precision", "precision"), ("Recall", "recall"),
-                                   ("F1", "f1"), ("ROC-AUC", "roc_auc")]):
-        col.metric(label, f"{mt.loc[w, m]:.3f}", f"KNN {mt.loc['KNN', m]:.3f}", delta_color="off")
-    st.caption("Big number = winner. Small line = KNN, for comparison. All scores are on the 30% test data only.")
+def talk_track(r):
     with st.expander("Talk track for sir (read top to bottom)"):
         st.markdown(f"""
 1. **Problem** - a store receives fresh products with a short life. If too much is left at the end, it is thrown away. We predict, every evening, which batches will end up wasted.
@@ -35,6 +27,19 @@ def headline(r):
 4. **Preparation** - fill blanks, add 3 helpful columns, one-hot the category; KNN also gets log + scaling because it measures distance.
 5. **Two models** - KNN (votes of similar past cases) and Decision Tree (a flowchart of rules).
 6. **Result** - {r['winner']} wins. Both beat the simple guess; scores are in section 5.""")
+
+
+def conclusion(r):
+    mt, w = r["metrics"], r["winner"]
+    st.header("Conclusion")
+    st.caption("FreshSave - predicting which fresh batches will be wasted, using KNN and Decision Tree")
+    st.success(f"Best model: **{w}**  -  it catches {pct(mt.loc[w, 'recall'])} of batches that really end up wasted, "
+               f"with {pct(mt.loc[w, 'accuracy'])} accuracy on data it has never seen.")
+    c = st.columns(5)
+    for col, (label, m) in zip(c, [("Accuracy", "accuracy"), ("Precision", "precision"), ("Recall", "recall"),
+                                   ("F1", "f1"), ("ROC-AUC", "roc_auc")]):
+        col.metric(label, f"{mt.loc[w, m]:.3f}", f"KNN {mt.loc['KNN', m]:.3f}", delta_color="off")
+    st.caption("Big number = winner. Small line = KNN, for comparison. All scores are on the 30% test data only.")
 
 
 def sec_data(r):
@@ -261,23 +266,6 @@ def sec_compare(r):
         {"train s": "{:.2f}", "predict s (test set)": "{:.2f}"})
 
 
-def sec_learned(r):
-    st.header("7. What the models learned")
-    st.subheader("Decision Tree - top rules")
-    st.code(r["tree"]["rules"])
-    st.pyplot(C.importance_bar(r["tree"]["importance"]))
-    st.subheader("Four example batches (first evening), explained by both models")
-    for ex in r["examples"]:
-        with st.expander(f"{ex['label']}  -  truth: {'AT RISK' if ex['truth'] else 'safe'}"):
-            row = ex["row"]
-            st.write(f"{row['category']} / {row['sub_category']}, days left {row['days_left']}, units left {row['units_left']}, daily demand {row['avg_daily_demand']}")
-            c1, c2 = st.columns(2)
-            c1.markdown(f"**KNN** says {pct(ex['knn_prob'])} risk. Its nearest past cases:")
-            c1.dataframe(ex["neighbors"], hide_index=True)
-            c2.markdown(f"**Tree** says {pct(ex['tree_prob'])} risk. Questions it asked:")
-            c2.code("\n".join(ex["tree_path"]))
-
-
 # ---------------------------------------------------------------- pages
 def landing():
     st.title("FreshSave")
@@ -293,7 +281,6 @@ def details():
         st.session_state["open_details"] = False
         st.rerun()
     st.title("Model Train Details")
-    st.caption("FreshSave - predicting which fresh batches will be wasted, using KNN and Decision Tree")
     res = load_results()
     if res is None:
         st.warning("Models are not trained yet.")
@@ -302,7 +289,7 @@ def details():
                 train_all()
             st.rerun()
         st.stop()
-    for fn in (headline, sec_data, sec_structure, sec_skew, sec_models, sec_results, sec_compare, sec_learned):
+    for fn in (talk_track, sec_data, sec_structure, sec_skew, sec_models, sec_results, sec_compare, conclusion):
         fn(res)
 
 
