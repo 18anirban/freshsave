@@ -19,7 +19,7 @@ FreshSave/
   03_decision_tree.py    Decision Tree (same steps, plus the printed questions it asks)
   04_compare_models.py   side-by-side table, waste cost caught/missed, charts, recommendation
   05_export_for_bi.py    writes the tables for Power BI
-  data/raw/              put perishable_goods_management.csv here (Kaggle: "Managing Perishable Inventory Data")
+  data/raw/              perishable_goods_management.csv (Kaggle: "Managing Perishable Inventory Data"), kept in Git
   output/                created by the scripts (prepared data, results, charts)
   powerbi/               tables for Power BI + POWERBI_GUIDE.md
   requirements.txt
