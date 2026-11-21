@@ -9,7 +9,6 @@ from src import charts as C
 from src.model_deployment_train.model_comparison import load_results, train_all
 
 st.set_page_config(page_title="FreshSave - Model Train Details", layout="wide")
-(tab,) = st.tabs(["Model Train Details"])
 
 pct = lambda x: f"{x * 100:.1f}%"
 
@@ -279,8 +278,20 @@ def sec_learned(r):
             c2.code("\n".join(ex["tree_path"]))
 
 
-# ---------------------------------------------------------------- page
-with tab:
+# ---------------------------------------------------------------- pages
+def landing():
+    st.title("FreshSave")
+    st.caption("Predicting which fresh batches will be wasted, using KNN and Decision Tree")
+    st.write("")
+    if st.button("Model Train Details", type="primary"):
+        st.session_state["open_details"] = True
+        st.rerun()
+
+
+def details():
+    if st.button("< Back"):
+        st.session_state["open_details"] = False
+        st.rerun()
     st.title("Model Train Details")
     st.caption("FreshSave - predicting which fresh batches will be wasted, using KNN and Decision Tree")
     res = load_results()
@@ -293,3 +304,9 @@ with tab:
         st.stop()
     for fn in (headline, sec_data, sec_structure, sec_skew, sec_models, sec_results, sec_compare, sec_learned):
         fn(res)
+
+
+if st.session_state.get("open_details", False):
+    details()
+else:
+    landing()
