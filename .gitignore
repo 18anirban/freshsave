@@ -5,4 +5,4 @@ __pycache__/
 # everything the scripts create (re-created by running them)
 output/*
 !output/.gitkeep
-powerbi/*.csv
+dashboard_data/*.csv

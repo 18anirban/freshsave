@@ -3,7 +3,7 @@
 # ------------------------------------------------------------
 # THIS FILE: runs files 01 to 05 in order. If one of them fails it stops and tells you which.
 # RUN:       python run_all.py
-# THEN:      in Power BI click Home > Refresh. The dashboard shows the new numbers.
+# THEN:      streamlit run 06_dashboard.py   (or press R in the open dashboard to reload)
 # ============================================================
 
 
@@ -31,7 +31,7 @@ from pathlib import Path
 # ============================================================
 
 FOLDER = Path(__file__).resolve().parent
-FILES = ["01_prepare_data.py", "02_knn_model.py", "03_decision_tree.py", "04_compare_models.py", "05_export_for_bi.py"]
+FILES = ["01_prepare_data.py", "02_knn_model.py", "03_decision_tree.py", "04_compare_models.py", "05_export_dashboard_data.py"]
 
 start = time.time()
 for number, name in enumerate(FILES, start=1):
@@ -50,8 +50,8 @@ for number, name in enumerate(FILES, start=1):
 # ============================================================
 
 print(f"\nALL DONE in {time.time() - start:.0f} seconds.")
-print("The Power BI tables are in:", FOLDER / "powerbi")
-print("Now open Power BI and click Home > Refresh.")
+print("The dashboard tables are in:", FOLDER / "dashboard_data")
+print("Now run:  streamlit run 06_dashboard.py")
 
 # WHAT WE DID IN STEP 3:
 # - Printed where the files are and the next click.

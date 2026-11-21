@@ -9,7 +9,7 @@ If the answer is yes, the store can order less, promote it early or mark it down
 1. Prepares the Kaggle history (which batches were wasted).
 2. Teaches two models - **KNN** and **Decision Tree** - to predict "at risk" from what is known on delivery day.
 3. **Compares** the two models (and one simple rule) on the same unseen batches.
-4. Shows the result in a **Power BI** dashboard.
+4. Shows the result in a **web dashboard** that runs on your own computer.
 
 ## Folder structure
 ```
@@ -18,11 +18,12 @@ FreshSave/
   02_knn_model.py        KNN (same 14-step pattern as the heart-attack example)
   03_decision_tree.py    Decision Tree (same steps, plus the printed questions it asks)
   04_compare_models.py   side-by-side table, waste cost caught/missed, charts, recommendation
-  05_export_for_bi.py    writes the tables for Power BI
+  05_export_dashboard_data.py  writes the tables the dashboard reads
+  06_dashboard.py        the web dashboard (streamlit), opens in your browser
   run_all.py             runs files 01 to 05 with one command
   data/raw/              perishable_goods_management.csv (Kaggle: "Managing Perishable Inventory Data"), kept in Git
   output/                created by the scripts (prepared data, results, charts)
-  powerbi/               tables for Power BI + POWERBI_GUIDE.md
+  dashboard_data/        tables for the dashboard
   requirements.txt
 ```
 Every file is written in one pattern: a **STEP header** above each block saying what it does, and a **WHAT WE DID** note after it.
@@ -37,10 +38,11 @@ python 01_prepare_data.py
 python 02_knn_model.py
 python 03_decision_tree.py
 python 04_compare_models.py
-python 05_export_for_bi.py
+python 05_export_dashboard_data.py
+streamlit run 06_dashboard.py
 ```
-Or run everything at once: `python run_all.py`.
-Each file prints its results. Charts are saved in `output/`; Power BI tables in `powerbi/`.
+Or run files 01 to 05 at once with `python run_all.py`, then `streamlit run 06_dashboard.py`.
+Each file prints its results. Charts are saved in `output/`. The dashboard opens at http://localhost:8501.
 
 ## How to explain it (one minute)
 - **Data:** each Kaggle row is one batch delivered to a store: quantity, normal sales per day, shelf life, price, storage and handling scores, and how much finally sold.

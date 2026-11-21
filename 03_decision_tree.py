@@ -276,7 +276,7 @@ F1-score:
 # ============================================================
 # STEP 13: SAVE THE RESULTS FOR THE COMPARISON AND THE BI DASHBOARD
 # ------------------------------------------------------------
-# File 4 compares models and file 5 builds the Power BI files. Both read these two files.
+# File 4 compares models and file 5 builds the dashboard tables. Both read these two files.
 # ============================================================
 
 pd.DataFrame({"record_id": test["record_id"], "y_true": y_test, "risk": y_prob, "predicted": y_pred}) \

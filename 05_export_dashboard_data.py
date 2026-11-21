@@ -1,9 +1,9 @@
 # ============================================================
-# FRESHSAVE - FILE 5 OF 5: EXPORT THE FILES FOR POWER BI
+# FRESHSAVE - FILE 5 OF 5: PREPARE THE TABLES FOR THE DASHBOARD
 # ------------------------------------------------------------
-# THIS FILE: turns the results of files 1 to 4 into four clean tables (CSV) for the Power BI dashboard.
-# RUN:       python 05_export_for_bi.py      (after files 02, 03 and 04)
-# THEN:      open Power BI and follow powerbi/POWERBI_GUIDE.md
+# THIS FILE: turns the results of files 1 to 4 into three clean tables (CSV) that the web dashboard reads.
+# RUN:       python 05_export_dashboard_data.py      (after files 02, 03 and 04)
+# THEN:      streamlit run 06_dashboard.py
 # ============================================================
 
 
@@ -34,10 +34,10 @@ import pandas as pd
 
 FOLDER = Path(__file__).resolve().parent
 OUTPUT = FOLDER / "output"
-BI = FOLDER / "powerbi"
+BI = FOLDER / "dashboard_data"
 BI.mkdir(exist_ok=True)
 
-for needed in ["test.csv", "knn_predictions.csv", "tree_predictions.csv", "model_comparison.csv"]:
+for needed in ["test.csv", "knn_predictions.csv", "tree_predictions.csv", "model_comparison.csv", "tree_feature_importance.csv"]:
     if not (OUTPUT / needed).exists():
         raise SystemExit(f"output/{needed} not found. Run files 01 to 04 first.")
 
@@ -81,61 +81,17 @@ print("batches_scored.csv   :", len(batches), "rows")
 
 
 # ============================================================
-# STEP 4: TABLE 2 - ONE ROW PER CATEGORY (category_summary.csv)
+# STEP 4: COPY THE COMPARISON AND WHAT THE TREE LOOKS AT
 # ------------------------------------------------------------
-# For each category: how many batches, how many were really at risk, the waste cost,
-# and how much of that waste each model would have warned us about.
-# ============================================================
-
-def summarise(g):
-    risky = g["at_risk"] == 1
-    return pd.Series({
-        "batches": len(g), "at_risk_batches": int(risky.sum()),
-        "at_risk_share": round(risky.mean(), 3), "waste_cost": round(g["waste_cost"].sum()),
-        "waste_cost_caught_by_knn": round(g.loc[risky & (g["knn_predicted"] == 1), "waste_cost"].sum()),
-        "waste_cost_caught_by_tree": round(g.loc[risky & (g["tree_predicted"] == 1), "waste_cost"].sum()),
-    })
-
-by_category = batches.groupby("category").apply(summarise, include_groups=False).reset_index()
-by_category = by_category.astype({c: int for c in by_category.columns if c not in ("category", "at_risk_share")})
-by_category.to_csv(BI / "category_summary.csv", index=False)
-print("category_summary.csv :", len(by_category), "rows")
-
-# WHAT WE DID IN STEP 4:
-# - Added up the batches and the waste cost per category.
-
-
-
-# ============================================================
-# STEP 5: TABLE 3 - ONE ROW PER PRODUCT (product_summary.csv)
-# ------------------------------------------------------------
-# The same view per product, so the dashboard can list the products that waste the most.
-# ============================================================
-
-by_product = batches.groupby(["category", "product_name"]).apply(summarise, include_groups=False).reset_index()
-by_product = by_product.astype({c: int for c in by_product.columns if c not in ("category", "product_name", "at_risk_share")})
-by_product = by_product.sort_values("waste_cost", ascending=False)
-by_product.to_csv(BI / "product_summary.csv", index=False)
-print("product_summary.csv  :", len(by_product), "rows")
-
-# WHAT WE DID IN STEP 5:
-# - Saved the product table, biggest waste cost first.
-
-
-
-# ============================================================
-# STEP 6: TABLE 4 AND 5 - MODEL COMPARISON AND WHAT THE TREE LOOKS AT
-# ------------------------------------------------------------
-# - model_comparison.csv : the table from file 4
+# - model_comparison.csv  : the table from file 4
 # - feature_importance.csv: which inputs the Decision Tree relied on most (0 to 1, adds up to 1)
 # ============================================================
 
 pd.read_csv(OUTPUT / "model_comparison.csv").to_csv(BI / "model_comparison.csv", index=False)
-pd.read_csv(OUTPUT / "waste_by_model.csv").to_csv(BI / "waste_by_model.csv", index=False)
 pd.read_csv(OUTPUT / "tree_feature_importance.csv").round(4).to_csv(BI / "feature_importance.csv", index=False)
 
-print("model_comparison.csv, waste_by_model.csv, feature_importance.csv copied")
-print("\nAll files are in the powerbi folder. Next: open Power BI and follow powerbi/POWERBI_GUIDE.md")
+print("model_comparison.csv, feature_importance.csv copied")
+print("\nAll files are in the dashboard_data folder. Next:  streamlit run 06_dashboard.py")
 
-# WHAT WE DID IN STEP 6:
-# - Copied the comparison and importance tables so Power BI reads everything from one folder.
+# WHAT WE DID IN STEP 4:
+# - Copied the two small tables so the dashboard reads everything from one folder.
