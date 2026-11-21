@@ -15,6 +15,9 @@ ICON = {"High": "🔴 High", "Medium": "🟠 Medium", "Low": "🟢 Low"}
 pct = lambda x: f"{x * 100:.1f}%"
 
 
+DAY_NAMES = ["Saturday night", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+
+
 def day_file_name(day):
     return "day_0_opening_stock.csv" if day == 0 else f"day_{day}_sales.csv"
 
@@ -23,7 +26,7 @@ def day_tracker(done):
     cols = st.columns(8)
     for d, col in enumerate(cols):
         state = "Done" if d < done else "Next" if d == done else "Waiting"
-        col.markdown(f"**Day {d}**  \n{state}")
+        col.markdown(f"**Day {d}**  \n{DAY_NAMES[d]}  \n{state}")
     st.progress(done / 8)
 
 
@@ -33,7 +36,8 @@ def table(df, fmt=None):
 
 # ---------------------------------------------------------------- day step
 def day_step(day, hist, model_name):
-    title = "Opening stock file (what is on the shelf now)" if day == 0 else f"Sales report for Day {day}"
+    title = ("Opening stock: inventory loaded on Saturday night, before any sales" if day == 0
+             else f"{DAY_NAMES[day]} evening closing report (sales of the day and stock left)")
     st.subheader(f"Day {day} - upload: {title}")
     st.caption("CSV with the same columns as the training data (no outcome columns). Or use the ready-made demo file.")
     up = st.file_uploader("Upload CSV", type="csv", key=f"up_{day}")

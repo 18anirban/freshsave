@@ -27,6 +27,6 @@ streamlit run app.py                                     # open the "Model Train
 
 ## Demo tab
 1. Click **Demo** on the landing page, pick a model (Decision Tree is the default).
-2. Day 0: upload `data/demo/day_0_opening_stock.csv` (or tick "Use demo file"), look at the risk list, set the action taken, click **Save Day 0**.
+2. Day 0 (Saturday night inventory): upload `data/demo/day_0_opening_stock.csv` (or tick "Use demo file"), look at the risk list, set the action taken, click **Save Day 0**.
 3. Repeat for Day 1 to Day 7 with the matching `day_N_sales.csv`.
 4. After Day 7 the final dashboard opens. **Reset demo** starts again. Saved days live in `demo_runs/` (not in git).
