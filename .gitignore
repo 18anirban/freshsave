@@ -1,12 +1,9 @@
 .venv/
 __pycache__/
 *.pyc
-.pytest_cache/
-# large / re-creatable files
+# the Kaggle file is large: keep it on your computer, not in Git
 data/raw/*.csv
-models/*
-!models/.gitkeep
-train.log
-# the app's own memory
-state/uploads/
-state/*.csv
+# everything the scripts create (re-created by running them)
+output/*
+!output/.gitkeep
+powerbi/*.csv
