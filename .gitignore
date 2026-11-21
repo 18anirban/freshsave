@@ -1,8 +1,0 @@
-.venv/
-__pycache__/
-*.pyc
-# the Kaggle file (about 21 MB) IS kept in Git, so anyone who clones the project can run it
-# everything the scripts create (re-created by running them)
-output/*
-!output/.gitkeep
-dashboard_data/*.csv
