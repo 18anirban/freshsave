@@ -35,8 +35,7 @@ def headline(r):
 3. **Split** - train on the older 70% of batches, test on the newer 30%. No batch is in both.
 4. **Preparation** - fill blanks, add 3 helpful columns, one-hot the category; KNN also gets log + scaling because it measures distance.
 5. **Two models** - KNN (votes of similar past cases) and Decision Tree (a flowchart of rules).
-6. **Result** - {r['winner']} wins. Both beat the simple guess; scores are in section 5.
-7. **Limits** - data is simulated, so real store data is the next step (section 8).""")
+6. **Result** - {r['winner']} wins. Both beat the simple guess; scores are in section 5.""")
 
 
 def sec_data(r):
@@ -282,17 +281,6 @@ def sec_learned(r):
             c2.code("\n".join(ex["tree_path"]))
 
 
-def sec_limits(r):
-    st.header("8. Honest limits")
-    st.markdown("""
-- The data is **simulated** to behave like a retailer; scores on real store data will differ. Real data is the next step.
-- Test set was used **once**; nothing was tuned on it.
-- Accuracy is higher on later evenings than on evening 1, so judge the model on evening 1.
-- The simple rule already catches most waste; the models add fewer false alarms, not magic.
-- Outcome columns are never inputs, so the model cannot cheat by seeing the future.
-""")
-
-
 # ---------------------------------------------------------------- page
 with tab:
     st.title("Model Train Details")
@@ -305,5 +293,5 @@ with tab:
                 train_all()
             st.rerun()
         st.stop()
-    for fn in (headline, sec_data, sec_structure, sec_skew, sec_models, sec_results, sec_compare, sec_learned, sec_limits):
+    for fn in (headline, sec_data, sec_structure, sec_skew, sec_models, sec_results, sec_compare, sec_learned):
         fn(res)
