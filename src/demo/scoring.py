@@ -15,7 +15,20 @@ ID_REQUIRED = ["batch_id", "store_id", "date", "category", "sub_category"]
 REQUIRED = ID_REQUIRED + RAW_NUMERIC
 HIGH, MEDIUM = 0.70, 0.40                      # risk bands (chance of waste)
 MODEL_FILES = {"Decision Tree": "decision_tree.joblib", "KNN": "knn.joblib"}
-ACTIONS = ["Not decided", "No action", "Discount", "Move stock", "Reduce next order", "Other"]
+DISCOUNTS = [10, 15, 20, 25, 30, 40, 50]
+ACTIONS = (["Not decided", "No action"] + [f"Discount {d}%" for d in DISCOUNTS] +
+           ["Move stock", "Reduce next order", "Other"])
+# colour of the dropdown box after a selection (white until the manager decides)
+ACTION_COLOURS = {"Not decided": "#ffffff", "No action": "#d1fae5", "Move stock": "#dbeafe",
+                  "Reduce next order": "#ede9fe", "Other": "#e5e7eb", "Discount": "#fde68a"}
+
+
+def action_family(action):
+    return "Discount" if str(action).startswith("Discount") else str(action)
+
+
+def action_colour(action):
+    return ACTION_COLOURS.get(action_family(action), "#ffffff")
 
 
 # ============================================================

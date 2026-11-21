@@ -47,10 +47,13 @@ def repeat_risk(all_rows, min_days=3):
 
 
 def actions_summary(all_rows):
-    h = all_rows[all_rows["level"] == "High"]
-    t = h["action"].value_counts().rename_axis("action taken").reset_index(name="High-risk rows")
+    """Day 0 is only the loaded inventory, so actions are counted from Day 1."""
+    h = all_rows[(all_rows["level"] == "High") & (all_rows["day"] >= 1)].copy()
+    h["family"] = h["action"].map(lambda a: "Discount" if str(a).startswith("Discount") else a)
+    t = h["family"].value_counts().rename_axis("action taken").reset_index(name="High-risk rows")
     decided = float((h["action"] != "Not decided").mean()) if len(h) else 0.0
-    return t, decided
+    disc = h[h["family"] == "Discount"]["action"].value_counts().rename_axis("discount given").reset_index(name="rows")
+    return t, decided, disc
 
 
 def prediction_check(all_rows, threshold=0.5):

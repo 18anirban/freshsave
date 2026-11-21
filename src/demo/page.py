@@ -30,6 +30,11 @@ def day_tracker(done):
     st.progress(done / 8)
 
 
+@st.cache_resource
+def get_model(name):
+    return S.load_model(name)
+
+
 def table(df, fmt=None):
     st.dataframe(df.style.format(fmt) if fmt else df, hide_index=True)
 
@@ -60,7 +65,7 @@ def day_step(day, hist, model_name):
         st.stop()
     st.success(f"File OK: {len(df)} batches, store {df['store_id'].iloc[0]}, date {df['date'].iloc[0]}.")
 
-    scored = S.score(df, model_name, S.load_model(model_name))
+    scored = S.score(df, model_name, get_model(model_name))
     n = scored["level"].value_counts()
     c = st.columns(4)
     c[0].metric("Batches checked", len(scored))
@@ -69,18 +74,43 @@ def day_step(day, hist, model_name):
     st.caption(f"Units on the shelf in High-risk batches: {int(scored.loc[scored['level'] == 'High', 'units_left'].sum()):,}")
 
     st.subheader("Today's risk list (highest risk first)")
-    show = pd.DataFrame({"Risk": scored["level"].map(ICON), "Chance of waste (%)": (scored["chance"] * 100).round(0),
-                         "Batch": scored["batch_id"], "Category": scored["category"], "Product": scored["sub_category"],
-                         "Days left": scored["days_left"], "Units left": scored["units_left"],
-                         "Why": scored["reason"], "Suggested": scored["suggested"], "Action taken": "Not decided"})
-    edited = st.data_editor(show, hide_index=True, disabled=[c for c in show.columns if c != "Action taken"],
-                            column_config={"Action taken": st.column_config.SelectboxColumn(options=S.ACTIONS)})
-    scored["action"] = edited["Action taken"].values
+    if day == 0:
+        st.caption("This is the inventory loaded on Saturday night. Suggestions and actions start from Day 1.")
+        scored["suggested"], scored["action"] = "", ""
+    scored["action"] = risk_table(day, scored)
     if st.button(f"Save Day {day}", type="primary"):
         H.save_day(day, scored, model_name)
-        for k in (f"up_{day}", f"demo_{day}"):
+        for k in [k for k in st.session_state if k.startswith((f"up_{day}", f"demo_{day}", f"act_{day}_"))]:
             st.session_state.pop(k, None)
         st.rerun()
+
+
+def risk_table(day, scored):
+    """Table with one dropdown per row (Day 1 onward). Each box changes colour after a choice."""
+    heads = ["Risk", "Chance %", "Batch", "Category", "Product", "Days left", "Units left", "Why"]
+    widths = [1, 0.9, 1, 1.2, 1.6, 0.8, 0.9, 4]
+    if day > 0:
+        heads += ["Suggested by Model", "Action taken"]
+        widths += [2, 2]
+    for col, h in zip(st.columns(widths), heads):
+        col.markdown(f"**{h}**")
+    chosen, css = [], []
+    for i, r in scored.iterrows():
+        cols = st.columns(widths)
+        vals = [ICON[r["level"]], f"{r['chance'] * 100:.0f}", r["batch_id"], r["category"], r["sub_category"],
+                int(r["days_left"]), int(r["units_left"]), r["reason"]]
+        for col, v in zip(cols, vals):
+            col.write(v)
+        if day > 0:
+            cols[8].write(r["suggested"])
+            key = f"act_{day}_{i}"
+            pick = cols[9].selectbox("Action taken", S.ACTIONS, key=key, label_visibility="collapsed")
+            chosen.append(pick)
+            css.append(f'.st-key-{key} [data-baseweb="select"] > div {{ background-color: {S.action_colour(pick)} !important; }}'
+                       f'.st-key-{key} [data-baseweb="select"] * {{ color: #111 !important; }}')
+    if css:
+        st.markdown("<style>" + "".join(css) + "</style>", unsafe_allow_html=True)
+    return chosen if day > 0 else [""] * len(scored)
 
 
 # ---------------------------------------------------------------- final dashboard
@@ -111,9 +141,12 @@ def final_dashboard(hist):
         st.write("None this week.")
 
     st.subheader("Actions the manager took on High-risk rows")
-    t, decided = D.actions_summary(a)
-    st.write(f"Action recorded on {pct(decided)} of High-risk rows.")
+    t, decided, disc = D.actions_summary(a)
+    st.write(f"Day 1 to Day 7: an action was recorded on {pct(decided)} of High-risk rows.")
     table(t)
+    if len(disc):
+        st.caption("Discount levels used")
+        table(disc)
 
     st.subheader("Prediction check - predicted vs what really happened")
     pc = D.prediction_check(a)
@@ -172,9 +205,12 @@ def demo_page():
         with st.expander("Earlier days"):
             d = st.selectbox("Day", list(hist), format_func=lambda x: f"Day {x}")
             h = hist[d]
-            st.dataframe(pd.DataFrame({"Risk": h["level"].map(ICON), "Chance (%)": (h["chance"] * 100).round(0), "Batch": h["batch_id"],
-                                       "Category": h["category"], "Product": h["sub_category"], "Units left": h["units_left"],
-                                       "Action taken": h["action"]}), hide_index=True)
+            view = pd.DataFrame({"Risk": h["level"].map(ICON), "Chance (%)": (h["chance"] * 100).round(0), "Batch": h["batch_id"],
+                                 "Category": h["category"], "Product": h["sub_category"], "Units left": h["units_left"]})
+            if d > 0:
+                view["Suggested by Model"] = h["suggested"]
+                view["Action taken"] = h["action"]
+            st.dataframe(view, hide_index=True)
         if st.button("Reset demo (start again)"):
             H.reset()
             for k in [k for k in st.session_state if k.startswith(("up_", "demo_"))]:
