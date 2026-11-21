@@ -21,8 +21,8 @@ FreshSave/
   05_export_dashboard_data.py  writes the tables the dashboard reads
   06_dashboard.py        the web dashboard (streamlit), opens in your browser
   run_all.py             runs files 01 to 05 with one command
-  data/make_store_dataset.py   makes the SIMULATED single-store dataset (one row = one batch on one evening)
-  data/store/            store_train_70.csv and store_test_30.csv (14 columns including date, 25,555 rows, 49 product types)
+  data/make_store_dataset.py   makes the SIMULATED retail dataset (4 stores, 2 years; one row = one batch on one evening)
+  data/store/            store_data_full.csv, store_train_70.csv, store_test_30.csv (18 columns, about 104,000 rows) + DATASET_DESCRIPTION.md
   data/raw/              perishable_goods_management.csv (Kaggle: "Managing Perishable Inventory Data"), kept in Git
   output/                created by the scripts (prepared data, results, charts)
   dashboard_data/        tables for the dashboard
