@@ -126,10 +126,36 @@ def threshold_chart(tables):
     ax.set_xlabel("alarm threshold"); ax.legend(fontsize=8, ncol=2); fig.tight_layout(); return fig
 
 
-def money_bar(money):
-    d = money[money["model"].isin(["KNN", "Decision Tree", "Simple rule (cover_gap > 0)"])]
-    fig, ax = _fig(6.5, 3.2); x = np.arange(len(d))
-    ax.bar(x, d["waste $ caught"] / 1e3, color=GREEN, label="caught")
-    ax.bar(x, d["waste $ missed"] / 1e3, bottom=d["waste $ caught"] / 1e3, color=RED, label="missed")
-    ax.set_xticks(x); ax.set_xticklabels(["KNN", "Tree", "Simple rule"]); ax.set_ylabel("waste cost, $ thousand"); ax.set_ylim(0, d[["waste $ caught","waste $ missed"]].sum(axis=1).max() / 1e3 * 1.18)
-    ax.legend(ncol=2, loc="upper left"); fig.tight_layout(); return fig
+def skew_shapes():
+    """Teaching picture: what skew looks like."""
+    rng = np.random.RandomState(0)
+    data = [("Symmetric  (skew ~ 0)", rng.normal(50, 10, 5000)), ("Right-skewed  (skew > 1)", rng.lognormal(3, .7, 5000)),
+            ("Left-skewed  (skew < -1)", 100 - rng.lognormal(3, .7, 5000))]
+    fig, axes = plt.subplots(1, 3, figsize=(8, 2.3))
+    for ax, (t, v) in zip(axes, data):
+        ax.hist(v, bins=40, color=GREY); ax.set_title(t, fontsize=9); ax.set_yticks([]); ax.grid(False)
+    fig.tight_layout(); return fig
+
+
+def skew_overview(skew):
+    """All numeric columns: skewness before vs what KNN sees after log."""
+    d = skew.sort_values("skewness", key=abs, ascending=True)
+    y = np.arange(len(d)); fig, ax = _fig(7, 0.42 * len(d) + 1.2)
+    ax.barh(y + .2, d["skewness"], .38, color=GREY, label="raw (Decision Tree sees this)")
+    ax.barh(y - .2, d["skew used by KNN"], .38, color=BLUE, label="after log1p where applied (KNN sees this)")
+    for x in (-1, 1):
+        ax.axvline(x, color=RED, ls="--", lw=1)
+    ax.axvline(0, color="#444", lw=.8)
+    ax.set_yticks(y); ax.set_yticklabels(d["column"]); ax.set_xlabel("skewness   (red lines = +/-1 limit)")
+    ax.legend(loc="lower right", fontsize=8); fig.tight_layout(); return fig
+
+
+def hist_grid(df, cols, title_skew=True, ncols=4):
+    n = len(cols); rows = (n + ncols - 1) // ncols
+    fig, axes = plt.subplots(rows, ncols, figsize=(9, 1.9 * rows))
+    for ax in np.ravel(axes)[n:]:
+        ax.axis("off")
+    for ax, c in zip(np.ravel(axes), cols):
+        ax.hist(df[c], bins=30, color=BLUE); ax.set_yticks([]); ax.grid(False)
+        ax.set_title(f"{c}\nskew {df[c].skew():.2f}", fontsize=8)
+    fig.tight_layout(); return fig

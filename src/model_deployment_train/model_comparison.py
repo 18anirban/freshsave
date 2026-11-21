@@ -8,7 +8,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from src.data_prep import (load_data, profile_data, skewness_table, build_features, apply_imputer,
+from src.data_prep import (feature_table, load_data, profile_data, skewness_table, build_features, apply_imputer,
                            fit_imputer, MODEL_DIR, TARGET, COLUMN_INFO, FEATURE_NAMES, NUMERIC_COLS)
 from src.evaluation import evaluate, threshold_table, group_metrics, calibration
 from src.model_deployment_train import knn_model, decision_tree_model
@@ -57,29 +57,7 @@ def breakdowns(test_df, probs):
 
 
 # ============================================================
-# STEP 4: The money view - first evening of each batch
-# ============================================================
-# On evening 1 the manager can still act (discount, move stock), so this
-# is the fair headline. Money = waste_cost of batches caught vs missed.
-def money_view(test_df, probs):
-    first = (test_df["shelf_life_days"] - test_df["days_left"]) == 1
-    d = test_df[first]
-    rows = []
-    for name, p in probs.items():
-        pred = (np.asarray(p)[first.values] >= THRESHOLD).astype(int)
-        risky = d[TARGET].values == 1
-        caught = float(d["waste_cost"].values[risky & (pred == 1)].sum())
-        missed = float(d["waste_cost"].values[risky & (pred == 0)].sum())
-        r = evaluate(d[TARGET], np.asarray(p)[first.values], THRESHOLD)
-        rows.append({"model": name, "batches": len(d), "accuracy": r["accuracy"], "recall": r["recall"],
-                     "waste $ caught": caught, "waste $ missed": missed,
-                     "share caught": caught / (caught + missed) if caught + missed else 0,
-                     "false alarms": r["fp"]})
-    return pd.DataFrame(rows)
-
-
-# ============================================================
-# STEP 5: Do the two models agree?
+# STEP 4: Do the two models agree?
 # ============================================================
 def agreement(y, p_knn, p_tree):
     a, b = (np.asarray(p_knn) >= THRESHOLD), (np.asarray(p_tree) >= THRESHOLD)
@@ -92,7 +70,7 @@ def agreement(y, p_knn, p_tree):
 
 
 # ============================================================
-# STEP 6: Pick the winner (average of recall and F1)
+# STEP 5: Pick the winner (average of recall and F1)
 # ============================================================
 # Recall matters most - a missed at-risk batch is real money lost.
 def pick_winner(mt):
@@ -101,7 +79,7 @@ def pick_winner(mt):
 
 
 # ============================================================
-# STEP 7: Four example rows explained by both models
+# STEP 6: Four example rows explained by both models
 # ============================================================
 def pick_examples(test_df, p_knn, p_tree, seed=7):
     d = test_df.reset_index(drop=True)
@@ -120,7 +98,7 @@ def pick_examples(test_df, p_knn, p_tree, seed=7):
 
 
 # ============================================================
-# STEP 8: Train everything, compare, save
+# STEP 7: Train everything, compare, save
 # ============================================================
 def train_all(save=True):
     train_df, test_df = load_data()
@@ -135,16 +113,33 @@ def train_all(save=True):
                    "test_accuracy": float(mt.loc[n, "accuracy"])} for n, r in [("KNN", knn), ("Decision Tree", tree)]}
 
     X_tr_tree = tree["X_train"]
+    skew = skewness_table(X_tr_tree)
+    used = knn["X_train"][NUMERIC_COLS].skew()          # skew KNN really sees (after log, scaling does not change skew)
+    skew["skew used by KNN"] = skew["column"].map(used).round(2)
+    skew["log applied"] = skew["column"].isin(knn["prep"]["log_cols"])
+    imp = knn["prep"]["imputer"]
+    prep_info = {
+        "n_input_cols": len(train_df.columns), "n_features": len(FEATURE_NAMES),
+        "missing_train": {c: int(v) for c, v in build_features(train_df).isna().sum().items() if v},
+        "medians": dict(zip(FEATURE_NAMES, [round(float(x), 3) for x in imp.statistics_])),
+        "feature_table": feature_table(),
+        "scaler_ranges": pd.DataFrame({"feature": FEATURE_NAMES, "min (after log)": knn["prep"]["scaler"].data_min_,
+                                       "max (after log)": knn["prep"]["scaler"].data_max_}),
+        "row_example": train_df.iloc[[0]],
+        "row_features": build_features(train_df.iloc[[0]]).T.rename(columns={0: "value"}),
+        "row_scaled": knn_model.transform(train_df.iloc[[0]], knn["prep"]).T.rename(columns={0: "value"}),
+    }
     res = {
         "profile": profile_data(train_df, test_df), "column_info": COLUMN_INFO,
-        "skew": skewness_table(X_tr_tree), "log_cols": knn["prep"]["log_cols"],
+        "skew": skew, "prep_info": prep_info, "log_cols": knn["prep"]["log_cols"],
         "X_train_raw": X_tr_tree[NUMERIC_COLS].sample(8000, random_state=1),
         "X_train_logged": knn["X_train"][NUMERIC_COLS].sample(8000, random_state=1),
+        "X_train_raw_all": X_tr_tree[NUMERIC_COLS].sample(8000, random_state=2),
         "sample_rows": train_df.head(8),
         "knn": {k: v for k, v in knn.items() if k not in ("model", "prep", "X_test", "X_train", "prob_train", "prob_test")},
         "tree": {k: v for k, v in tree.items() if k not in ("model", "prep", "X_test", "X_train", "prob_train", "prob_test")},
         "metrics": mt, "winner": winner, "winner_scores": scores, "fit_gap": fit_gap,
-        "breakdowns": breakdowns(test_df, probs), "money": money_view(test_df, probs),
+        "breakdowns": breakdowns(test_df, probs),
         "agreement": agreement(y, knn["prob_test"], tree["prob_test"]),
         "thresholds": {n: threshold_table(y, probs[n]) for n in ["KNN", "Decision Tree"]},
         "curves": {n: (evaluate(y, probs[n])["fpr_curve"], evaluate(y, probs[n])["tpr_curve"]) for n in ["KNN", "Decision Tree"]},
@@ -180,4 +175,3 @@ if __name__ == "__main__":
     r = train_all()
     print(r["metrics"][["accuracy", "precision", "recall", "f1", "roc_auc"]].round(3))
     print("Winner:", r["winner"], r["winner_scores"])
-    print(r["money"].round(3))

@@ -117,3 +117,15 @@ def profile_data(train, test):
         "by_category": full.groupby("category")[TARGET].mean().round(3).to_dict(),
         "by_store": full.groupby("store_id")[TARGET].mean().round(3).to_dict(),
     }
+
+
+def feature_table():
+    """Every model input: where it comes from and how each model treats it."""
+    rows = []
+    for c in RAW_NUMERIC:
+        rows.append((c, "Original column", "as is" + (" (blank -> median)" if c == "handling_score" else "")))
+    rows += [("sold_so_far", "Derived", "units_received - units_left"),
+             ("cover_gap", "Derived", "units_left / avg_daily_demand - days_left"),
+             ("margin_pct", "Derived", "(selling_price - cost_price) / selling_price")]
+    rows += [("cat_" + c, "One-hot of category", f"1 if category = {c}, else 0") for c in CATEGORIES]
+    return pd.DataFrame(rows, columns=["feature", "source", "how it is made"])

@@ -67,50 +67,110 @@ Batches in both: **{p['batch_overlap']}**""")
 
 
 def sec_structure(r):
-    p = r["profile"]
+    p, pi = r["profile"], r["prep_info"]
     st.header("2. How the data is structured and prepared")
-    c1, c2 = st.columns(2)
-    c1.markdown("""
-**Pipeline (same for both models)**
-1. Load train and test files
-2. Remove ID columns and outcome columns from the inputs
-3. Add 3 derived columns
-4. Fill missing values with the **train** median
-5. One-hot encode `category` (8 columns)
-6. KNN only: log-squeeze skewed columns, then scale 0-1
-7. Tune settings with cross-validation on **train only**
-8. Score on test **once**
-""")
-    c2.markdown("""
-**Derived columns**
-- `sold_so_far` = units received - units left
-- `cover_gap` = units left / daily demand - days left  (positive = more stock than days can sell)
-- `margin_pct` = (price - cost) / price
+    st.markdown("Every step below is done in the same order for both models. Steps marked **KNN only** are not needed by the Decision Tree.")
 
-**Never used as inputs**
-- `units_wasted_final`, `waste_cost` - they are the future
-- `batch_id`, `store_id`, `date`, `sub_category` - identifiers
-""")
-    st.subheader("Class balance")
-    c1, c2 = st.columns([2, 3])
-    c1.pyplot(C.class_balance(p))
-    c2.markdown(f"About **{pct(p['risk_rate_train'])}** of rows are at risk, so the classes are fairly balanced and plain accuracy is meaningful. "
-                f"Per batch, {pct(p['risk_rate_batch_train'])} (train) and {pct(p['risk_rate_batch_test'])} (test) of batches are at risk. "
-                f"A model that always says 'safe' would score {pct(1 - p['risk_rate_test'])} - that is the floor to beat.")
-    if p["missing"]:
-        st.caption("Missing values found: " + ", ".join(f"{k} = {v:,}" for k, v in p["missing"].items()))
+    st.subheader("Column funnel: from the file to the model input")
+    nrow = lambda a, b, c: {"stage": a, "columns": b, "what happens": c}
+    table(pd.DataFrame([
+        nrow("Raw file", pi["n_input_cols"], "All columns of store_train_70.csv"),
+        nrow("Remove 3 outcome columns", pi["n_input_cols"] - 3, "units_wasted_final, waste_cost, at_risk (at_risk is kept aside as the label y)"),
+        nrow("Remove 4 ID columns", pi["n_input_cols"] - 7, "batch_id, store_id, date, sub_category"),
+        nrow("Add 3 derived columns", pi["n_input_cols"] - 4, "sold_so_far, cover_gap, margin_pct"),
+        nrow("One-hot the category", pi["n_features"], "category (1 column) becomes 8 yes/no columns"),
+        nrow("Final model input X", pi["n_features"], "10 original numbers + 3 derived + 8 one-hot")]))
+
+    st.subheader("Step by step")
+    with st.expander("Step 1 - Load the data", expanded=True):
+        st.markdown(f"Two files are read: **train** ({p['rows_train']:,} rows) and **test** ({p['rows_test']:,} rows). "
+                    "The split was made by time and by batch, so the test set is the future and the model never sees it while learning.")
+    with st.expander("Step 2 - Define the label (what we predict)", expanded=True):
+        st.markdown(f"`at_risk` = 1 when 20% or more of a batch is wasted at the end of its life. It is the label **y**. "
+                    f"In train {pct(p['risk_rate_train'])} of rows are at risk, in test {pct(p['risk_rate_test'])}.")
+        st.pyplot(C.class_balance(p))
+    with st.expander("Step 3 - Remove outcome columns (no cheating)", expanded=True):
+        st.markdown("`units_wasted_final` and `waste_cost` are only known **after** the batch is over. If the model saw them it would simply copy the answer. They are never inputs.")
+    with st.expander("Step 4 - Remove ID columns", expanded=True):
+        st.markdown("`batch_id`, `store_id`, `date` are labels, not behaviour: a model could memorise them instead of learning patterns. "
+                    "`sub_category` has 40 values and would add 40 columns for little gain; `category` (8 values) is enough.")
+    with st.expander("Step 5 - Keep the original input columns", expanded=True):
+        st.markdown("`shelf_life_days, days_left, units_received, units_left, avg_daily_demand, units_sold_today, cost_price, selling_price, handling_score, is_promoted`")
+    with st.expander("Step 6 - Create 3 derived columns", expanded=True):
+        st.markdown("These turn raw numbers into something close to the business question *'will this stock sell in time?'*")
+        table(pd.DataFrame([
+            {"new column": "sold_so_far", "formula": "units_received - units_left", "meaning": "How much of the batch has already sold"},
+            {"new column": "cover_gap", "formula": "units_left / avg_daily_demand - days_left", "meaning": "Days of stock minus days of life. Above 0 = more stock than days left to sell it"},
+            {"new column": "margin_pct", "formula": "(selling_price - cost_price) / selling_price", "meaning": "Profit share of the price"}]))
+    with st.expander("Step 7 - One-hot encode category", expanded=True):
+        st.markdown("Models need numbers, not words. `category` becomes 8 columns (Bakery, Beverages, Dairy, Deli, Meat, Produce, Ready_to_Eat, Seafood). "
+                    "A Dairy row has `cat_Dairy = 1` and the other seven are 0. We do **not** give categories numbers like 1, 2, 3, because that would wrongly say Meat is 'bigger' than Dairy.")
+    with st.expander("Step 8 - Fill missing values", expanded=True):
+        miss = pi["missing_train"]
+        st.markdown("Missing in train: " + (", ".join(f"`{k}` = {v:,} rows" for k, v in miss.items()) or "none") +
+                    ". Each blank is filled with the **median** of that column in the **train** data only (the median is not pulled by extreme values). "
+                    "The same train medians are reused for the test data, so nothing from test leaks in.")
+        if miss:
+            for k in miss:
+                st.caption(f"Median used for {k}: {pi['medians'][k]}")
+    with st.expander("Step 9 - KNN only: check skewness and apply log", expanded=True):
+        st.markdown("Skewed columns (long tail) are squeezed with `log1p` so a few huge values do not dominate distances. Details and charts are in section 3. "
+                    "Applied to: " + ", ".join(f"`{c}`" for c in r["log_cols"]) + ".")
+    with st.expander("Step 10 - KNN only: scale every column to 0-1", expanded=True):
+        st.markdown("KNN measures distance. `units_received` can be in hundreds while `is_promoted` is 0 or 1, so without scaling the big numbers would decide everything. "
+                    "MinMax scaling gives each column the same 0-1 range: `(value - min) / (max - min)`. Min and max are learned from train only.")
+        st.dataframe(pi["scaler_ranges"].round(3), hide_index=True)
+    with st.expander("Step 11 - Choose settings with cross-validation (train only)", expanded=True):
+        st.markdown("Train is cut into 5 folds, **keeping all days of one batch in the same fold**. The model learns on 4 folds and is checked on the 5th, rotating. "
+                    "This picks k (KNN) and depth / leaf size (Tree) without touching the test data.")
+    with st.expander("Step 12 - Train the final model", expanded=True):
+        st.markdown("The chosen settings are used to train once on all train rows.")
+    with st.expander("Step 13 - Test once", expanded=True):
+        st.markdown(f"The trained model predicts the {p['rows_test']:,} test rows. Scores are computed once. Nothing is changed afterwards to improve them.")
+
+    st.subheader("All 21 model inputs")
+    table(pi["feature_table"])
+
+    st.subheader("Follow one row through the pipeline")
+    st.markdown("Original row from the training file:")
+    st.dataframe(pi["row_example"], hide_index=True)
+    c1, c2 = st.columns(2)
+    c1.markdown("**After steps 3-8** (what the Decision Tree gets)")
+    c1.dataframe(pi["row_features"].round(3))
+    c2.markdown("**After steps 9-10** (what KNN gets, all between 0 and 1)")
+    c2.dataframe(pi["row_scaled"].round(3))
 
 
 def sec_skew(r):
     st.header("3. Skewness")
-    st.markdown("**Skewness** tells whether a column has a long tail (a few very large values). |skew| above 1 is called strongly skewed. "
-                "KNN uses distances, so a long tail lets a few big values dominate; we squeeze it with `log1p`. A decision tree only compares thresholds, so it ignores skew.")
-    sk = r["skew"].copy()
-    sk["skew after log1p"] = sk["skew after log1p"].round(2)
+    st.subheader("What is skewness?")
+    st.markdown("Skewness says whether the values of a column are balanced around the middle or have a **long tail on one side**. "
+                "Example: most products have 20-100 units left, but a few have 2,000. Those few big values stretch the tail to the right.")
+    st.pyplot(C.skew_shapes())
+    st.markdown("""
+- **Skew near 0** - balanced, nothing to do.
+- **Skew above +1** - long right tail (a few very large values). Common for prices and quantities.
+- **Skew below -1** - long left tail.
+- **Rule used here:** |skew| above 1 counts as strongly skewed.
+
+**Why it matters for our two models**
+- **KNN** compares distances, so a few huge values dominate the distance and the rest of the data looks squeezed together. We apply `log1p` (log of 1 + value), which pulls long tails in.
+- **Decision Tree** only asks 'is value above a number?', so skew does not hurt it. It uses raw values and the rules stay readable.
+""")
+    st.subheader("Overall skewness - all numeric columns")
+    st.pyplot(C.skew_overview(r["skew"]))
+    st.caption("Grey = raw data. Blue = what KNN sees after log1p (equal to grey where log was not applied). Bars outside the red lines are strongly skewed.")
+    st.subheader("Every column's distribution (raw train data)")
+    cols = list(r["skew"]["column"])
+    st.pyplot(C.hist_grid(r["X_train_raw_all"], cols))
+    st.subheader("Skewness table")
+    sk = r["skew"].rename(columns={"skewness": "skew (raw)"})[["column", "skew (raw)", "skewed (|skew|>1)", "log applied", "skew used by KNN"]]
     table(sk)
-    st.markdown("**Log applied to (KNN only):** " + ", ".join(f"`{c}`" for c in r["log_cols"]) +
-                "  - chosen only when |skew| > 1 and log really reduces it. Binary `is_promoted` is left alone.")
-    col = st.selectbox("See before / after for a column", r["log_cols"])
+    st.markdown("**Log is applied only when** the column is strongly skewed, has no negative values, and log really reduces the skew. "
+                "`is_promoted` is a 0/1 column, so it is left alone, and `sold_so_far` has a few negative values (stock-count errors), so log cannot be used on it. "
+                "Log can slightly overshoot to the other side (`units_left`, `units_sold_today` go a little negative because many values are 0), but it is still closer to balanced than before. Applied to: " + ", ".join(f"`{c}`" for c in r["log_cols"]) + ".")
+    st.subheader("Before and after for one column")
+    col = st.selectbox("Pick a column", r["log_cols"])
     st.pyplot(C.skew_before_after(r, col))
 
 
@@ -181,17 +241,13 @@ def sec_compare(r):
     mt = r["metrics"]
     st.header("6. Detailed model comparison")
     st.info(f"Winner: **{r['winner']}**  (rule: highest average of recall and F1; scores {r['winner_scores']}). "
-            "Recall counts because a missed at-risk batch is real money lost.")
+            "Recall counts because a missed at-risk batch is waste the store could have avoided.")
     st.subheader("Against simple baselines")
     cols = ["accuracy", "precision", "recall", "f1"]
     t = mt[cols].astype(float).reset_index().rename(columns={"index": "model"})
     table(t, {c: "{:.3f}" for c in cols})
     st.caption("The simple rule (stock cover longer than days left) already catches almost everything but raises many false alarms. "
                "The models are better at being right about both sides: higher accuracy and precision.")
-    st.subheader("Money view - first evening of each batch (when the manager can still act)")
-    st.pyplot(C.money_bar(r["money"]))
-    m = r["money"].copy()
-    table(m, {"accuracy": "{:.3f}", "recall": "{:.3f}", "share caught": "{:.1%}", "waste $ caught": "${:,.0f}", "waste $ missed": "${:,.0f}"})
     st.subheader("Do the models agree?")
     table(r["agreement"])
     st.subheader("Threshold trade-off")
