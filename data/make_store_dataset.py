@@ -40,6 +40,7 @@ TOTAL_ROWS = 25555
 TRAIN_SHARE = 0.70
 WASTE_THRESHOLD = 20.0
 SEED = 42
+START_DATE = "2023-01-02"        # the first day of the data, a Monday (the weekday effect below needs day 0 = Monday)
 ORDER_BIAS = 1.22                # managers order about 22% more than the normal demand over the shelf life.
                                  # CALIBRATION: chosen so that about 42% of batches end up at risk, the share seen in the Kaggle data.
                                  # It was NOT chosen to make any model score higher.
@@ -174,7 +175,7 @@ deliveries.sort()
 #     (sometimes too much, sometimes too little). This is the main source of waste.
 #  5. DEMAND LEVEL OF THIS BATCH: unknown on delivery day. Some batches simply sell faster or
 #     slower than usual (weather, local events). It shows up only through the daily sales.
-#  6. EACH DAY: units sold = normal demand x batch demand level x weekday effect x freshness effect,
+#  6. EACH DAY (the date column is the calendar date of that evening): units sold = normal demand x batch demand level x weekday effect x freshness effect,
 #     plus random noise, and never more than what is left.
 #     Weekday effect: weekends sell more. Freshness effect: sales slow as expiry nears.
 #  7. SPOILAGE: poor handling spoils a small share of the stock every day.
@@ -207,7 +208,8 @@ for delivery_day, index in deliveries:
         stock -= sold
         stock -= int(rng.binomial(stock, spoil_rate))
         if d < life:
-            snapshots.append(dict(batch_id=batch_id, category=p["category"], sub_category=p["sub"], shelf_life_days=life,
+            snapshots.append(dict(batch_id=batch_id, date=(pd.Timestamp(START_DATE) + pd.Timedelta(days=delivery_day + d)).strftime("%Y-%m-%d"),
+                                  category=p["category"], sub_category=p["sub"], shelf_life_days=life,
                                   days_left=life - d, units_received=received, units_left=stock,
                                   avg_daily_demand=p["demand"], units_sold_today=sold, cost_price=round(p["cost"] * batch_price_factor, 2),
                                   handling_score=handling, is_promoted=promoted))
@@ -259,4 +261,4 @@ print("Batch-level at-risk share:", f"{np.mean([w >= WASTE_THRESHOLD for w in ba
 print("Saved in:", FOLDER)
 
 # WHAT WE DID IN STEP 6:
-# - Saved the two files. Each has 13 columns: batch_id, category, sub_category, 8 other inputs and the answer at_risk.
+# - Saved the two files. Each has 14 columns: batch_id, date, category, sub_category, 8 other inputs and the answer at_risk.

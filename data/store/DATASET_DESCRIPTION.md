@@ -7,14 +7,16 @@ Product types, shelf lives, demand levels and prices use typical retail values; 
 One batch of fresh food on one evening of its shelf life (a daily snapshot). The question each row answers: **will this batch end with 20% or more of its units wasted?**
 
 ## Size
-- 25,555 rows, 13 columns, no missing values
+- 25,555 rows, 14 columns, no missing values
 - 5,976 batches, 1 store, 8 categories, 49 product types (sub-categories)
+- Dates: 2023-01-03 to 2023-10-22
 - About 43% of batches are at risk
 
 ## Columns
 | Column | Meaning |
 |---|---|
 | batch_id | Identifier of the delivered batch. Rows with the same batch_id are the same batch on different evenings |
+| date | Calendar date of the evening this row describes (YYYY-MM-DD). Data starts on Monday 2023-01-02 |
 | category | Fresh-food category (Bakery, Beverages, Dairy, Deli, Meat, Produce, Ready_to_Eat, Seafood) |
 | sub_category | Product type, for example Whole Milk, Greek Yogurt, Salmon Fillet, Croissants |
 | shelf_life_days | Total shelf life of the batch when it arrived |
@@ -29,7 +31,7 @@ One batch of fresh food on one evening of its shelf life (a daily snapshot). The
 | **at_risk** | **Target.** 1 if 20% or more of the batch was wasted at the end of its life, else 0. The same value on every row of a batch |
 
 ## Split
-Rows are in time order (earlier batches first).
+Rows are in order of batch delivery (earlier batches first). The split is by batch, so near the cut a few evenings of the last training batches fall on dates after the first test batches were delivered.
 - `store_train_70.csv`: first 17,888 rows (70.0%), 4,195 batches, at risk 41.9% of rows
 - `store_test_30.csv`: last 7,667 rows (30.0%), 1,781 batches, at risk 40.4% of rows
 - `store_data_25555.csv`: all rows together
