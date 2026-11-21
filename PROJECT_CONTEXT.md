@@ -35,4 +35,4 @@ streamlit run app.py
 
 ## Demo tab (planned, data ready)
 - Landing page gets a second tab "Demo": Day 0 opening stock upload, then Day 1-7 daily sales uploads; daily risk list (High / Medium / Low), action taken, final dashboard after Day 7 with prediction check.
-- Demo files are in data/demo/ (STORE_01, built by data/make_demo_files.py from the hidden test data). Flow diagram agreed in chat.
+- Demo tab is BUILT: src/demo/ (scoring, history, dashboard, page). Demo files in data/demo/ (STORE_01, made by data/make_demo_files.py from the hidden test data).

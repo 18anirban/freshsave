@@ -159,3 +159,25 @@ def hist_grid(df, cols, title_skew=True, ncols=4):
         ax.hist(df[c], bins=30, color=BLUE); ax.set_yticks([]); ax.grid(False)
         ax.set_title(f"{c}\nskew {df[c].skew():.2f}", fontsize=8)
     fig.tight_layout(); return fig
+
+
+LEVEL_COL = {"High": RED, "Medium": "#f0b429", "Low": GREEN}
+
+
+def risk_trend(daily):
+    """Stacked bars: batches per risk level for each day."""
+    fig, ax = _fig(7, 3.2); bottom = np.zeros(len(daily)); x = [f"Day {d}" for d in daily.index]
+    for lv in ["High", "Medium", "Low"]:
+        ax.bar(x, daily[lv], bottom=bottom, color=LEVEL_COL[lv], label=lv); bottom += daily[lv].values
+    ax.set_ylabel("batches on the shelf"); ax.legend(ncol=3, loc="upper center", bbox_to_anchor=(.5, 1.15), frameon=False)
+    fig.tight_layout(); return fig
+
+
+def risk_by_category(cat):
+    d = cat.sort_values("average chance of waste")
+    fig, ax = _fig(6.5, 0.4 * len(d) + 1.2)
+    ax.barh(d["category"], d["average chance of waste"] * 100, color=RED)
+    for i, v in enumerate(d["average chance of waste"] * 100):
+        ax.text(v + 1, i, f"{v:.0f}%", va="center", fontsize=8)
+    ax.set_xlim(0, 110); ax.set_xlabel("average chance of waste (%)"); ax.grid(False)
+    fig.tight_layout(); return fig
