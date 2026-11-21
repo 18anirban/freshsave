@@ -29,19 +29,6 @@ def talk_track(r):
 6. **Result** - {r['winner']} wins. Both beat the simple guess; scores are in section 5.""")
 
 
-def conclusion(r):
-    mt, w = r["metrics"], r["winner"]
-    st.header("Conclusion")
-    st.caption("FreshSave - predicting which fresh batches will be wasted, using KNN and Decision Tree")
-    st.success(f"Best model: **{w}**  -  it catches {pct(mt.loc[w, 'recall'])} of batches that really end up wasted, "
-               f"with {pct(mt.loc[w, 'accuracy'])} accuracy on data it has never seen.")
-    c = st.columns(5)
-    for col, (label, m) in zip(c, [("Accuracy", "accuracy"), ("Precision", "precision"), ("Recall", "recall"),
-                                   ("F1", "f1"), ("ROC-AUC", "roc_auc")]):
-        col.metric(label, f"{mt.loc[w, m]:.3f}", f"KNN {mt.loc['KNN', m]:.3f}", delta_color="off")
-    st.caption("Big number = winner. Small line = KNN, for comparison. All scores are on the 30% test data only.")
-
-
 def sec_data(r):
     p = r["profile"]
     st.header("1. The data")
@@ -241,29 +228,36 @@ def sec_results(r):
 
 
 def sec_compare(r):
-    mt = r["metrics"]
+    mt, w = r["metrics"], r["winner"]
+    lo = "KNN" if w == "Decision Tree" else "Decision Tree"
     st.header("6. Detailed model comparison")
-    st.info(f"Winner: **{r['winner']}**  (rule: highest average of recall and F1; scores {r['winner_scores']}). "
-            "Recall counts because a missed at-risk batch is waste the store could have avoided.")
-    st.subheader("Against simple baselines")
-    cols = ["accuracy", "precision", "recall", "f1"]
-    t = mt[cols].astype(float).reset_index().rename(columns={"index": "model"})
-    table(t, {c: "{:.3f}" for c in cols})
-    st.caption("The simple rule (stock cover longer than days left) already catches almost everything but raises many false alarms. "
-               "The models are better at being right about both sides: higher accuracy and precision.")
-    st.subheader("Threshold trade-off")
-    st.pyplot(C.threshold_chart(r["thresholds"]))
-    st.caption("Lower threshold = warn more often: recall goes up, precision down. The store can choose where to sit.")
-    c = st.columns(2)
-    for col, n in zip(c, ["KNN", "Decision Tree"]):
-        col.markdown(f"**{n}**")
-        with col:
-            table(r["thresholds"][n], {x: "{:.3f}" for x in ["accuracy", "precision", "recall", "f1"]})
-    st.subheader("Speed and practicality")
-    table(pd.DataFrame([
-        {"model": "KNN", "train s": r["knn"]["train_seconds"], "predict s (test set)": r["knn"]["predict_seconds"], "explains itself by": "showing similar past cases"},
-        {"model": "Decision Tree", "train s": r["tree"]["train_seconds"], "predict s (test set)": r["tree"]["predict_seconds"], "explains itself by": "readable rules"}]),
-        {"train s": "{:.2f}", "predict s (test set)": "{:.2f}"})
+    st.subheader("Final comparison table")
+    cols = ["accuracy", "precision", "recall", "f1", "roc_auc"]
+    t = mt.loc[["KNN", "Decision Tree"], cols].astype(float)
+    t["train time (s)"] = [r["knn"]["train_seconds"], r["tree"]["train_seconds"]]
+    t["predict time (s)"] = [r["knn"]["predict_seconds"], r["tree"]["predict_seconds"]]
+    t["best model"] = ["Winner" if n == w else "" for n in t.index]
+    t = t.reset_index().rename(columns={"index": "model"})
+    table(t, {**{c: "{:.3f}" for c in cols}, "train time (s)": "{:.2f}", "predict time (s)": "{:.2f}"})
+
+    st.subheader("Conclusion of findings")
+    rule = mt.loc["Simple rule (cover_gap > 0)"]; maj = mt.loc["Majority guess"]
+    d = lambda m: (mt.loc[w, m] - mt.loc[lo, m]) * 100
+    st.markdown(f"""
+- **{w} is the better model.** It scores higher than {lo} on accuracy (+{d('accuracy'):.1f} points), recall (+{d('recall'):.1f}) and F1 (+{d('f1'):.1f}).
+- **Recall decides the winner**, because a missed at-risk batch is waste the store could have avoided. {w} catches {pct(mt.loc[w, 'recall'])} of at-risk rows, {lo} catches {pct(mt.loc[lo, 'recall'])}.
+- **Both models clearly beat a plain guess.** Always saying 'safe' is right {pct(maj['accuracy'])} of the time and catches nothing.
+- **Both models are more accurate than the one-line rule** (stock cover longer than days left): {pct(rule['accuracy'])} accuracy and {pct(rule['precision'])} precision, against {pct(mt.loc[w, 'accuracy'])} and {pct(mt.loc[w, 'precision'])} for {w}.
+- **Speed:** KNN trains in {r['knn']['train_seconds']:.2f}s but needs {r['knn']['predict_seconds']:.1f}s to predict the test set; the Tree trains in {r['tree']['train_seconds']:.2f}s and predicts in {r['tree']['predict_seconds']:.2f}s.
+- **Explainability:** the Tree gives readable rules; KNN explains by showing similar past cases.
+""")
+    st.success(f"Best model: **{w}**  -  it catches {pct(mt.loc[w, 'recall'])} of batches that really end up wasted, "
+               f"with {pct(mt.loc[w, 'accuracy'])} accuracy on data it has never seen.")
+    c = st.columns(5)
+    for col, (label, m) in zip(c, [("Accuracy", "accuracy"), ("Precision", "precision"), ("Recall", "recall"),
+                                   ("F1", "f1"), ("ROC-AUC", "roc_auc")]):
+        col.metric(label, f"{mt.loc[w, m]:.3f}", f"{lo} {mt.loc[lo, m]:.3f}", delta_color="off")
+    st.caption("Big number = winner. Small line = the other model. All scores are on the 30% test data only.")
 
 
 # ---------------------------------------------------------------- pages
@@ -289,7 +283,7 @@ def details():
                 train_all()
             st.rerun()
         st.stop()
-    for fn in (talk_track, sec_data, sec_structure, sec_skew, sec_models, sec_results, sec_compare, conclusion):
+    for fn in (talk_track, sec_data, sec_structure, sec_skew, sec_models, sec_results, sec_compare):
         fn(res)
 
 
