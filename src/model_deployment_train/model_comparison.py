@@ -57,20 +57,7 @@ def breakdowns(test_df, probs):
 
 
 # ============================================================
-# STEP 4: Do the two models agree?
-# ============================================================
-def agreement(y, p_knn, p_tree):
-    a, b = (np.asarray(p_knn) >= THRESHOLD), (np.asarray(p_tree) >= THRESHOLD)
-    y = np.asarray(y) == 1
-    return pd.DataFrame([
-        {"case": "Both right", "rows": int(((a == y) & (b == y)).sum())},
-        {"case": "Only KNN right", "rows": int(((a == y) & (b != y)).sum())},
-        {"case": "Only Tree right", "rows": int(((a != y) & (b == y)).sum())},
-        {"case": "Both wrong", "rows": int(((a != y) & (b != y)).sum())}])
-
-
-# ============================================================
-# STEP 5: Pick the winner (average of recall and F1)
+# STEP 4: Pick the winner (average of recall and F1)
 # ============================================================
 # Recall matters most - a missed at-risk batch is real money lost.
 def pick_winner(mt):
@@ -79,7 +66,7 @@ def pick_winner(mt):
 
 
 # ============================================================
-# STEP 6: Four example rows explained by both models
+# STEP 5: Four example rows explained by both models
 # ============================================================
 def pick_examples(test_df, p_knn, p_tree, seed=7):
     d = test_df.reset_index(drop=True)
@@ -98,7 +85,7 @@ def pick_examples(test_df, p_knn, p_tree, seed=7):
 
 
 # ============================================================
-# STEP 7: Train everything, compare, save
+# STEP 6: Train everything, compare, save
 # ============================================================
 def train_all(save=True):
     train_df, test_df = load_data()
@@ -140,7 +127,7 @@ def train_all(save=True):
         "tree": {k: v for k, v in tree.items() if k not in ("model", "prep", "X_test", "X_train", "prob_train", "prob_test")},
         "metrics": mt, "winner": winner, "winner_scores": scores, "fit_gap": fit_gap,
         "breakdowns": breakdowns(test_df, probs),
-        "agreement": agreement(y, knn["prob_test"], tree["prob_test"]),
+        
         "thresholds": {n: threshold_table(y, probs[n]) for n in ["KNN", "Decision Tree"]},
         "curves": {n: (evaluate(y, probs[n])["fpr_curve"], evaluate(y, probs[n])["tpr_curve"]) for n in ["KNN", "Decision Tree"]},
         "calibration": {n: calibration(y, probs[n]) for n in ["KNN", "Decision Tree"]},

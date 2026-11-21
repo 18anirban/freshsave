@@ -247,8 +247,6 @@ def sec_compare(r):
     table(t, {c: "{:.3f}" for c in cols})
     st.caption("The simple rule (stock cover longer than days left) already catches almost everything but raises many false alarms. "
                "The models are better at being right about both sides: higher accuracy and precision.")
-    st.subheader("Do the models agree?")
-    table(r["agreement"])
     st.subheader("Threshold trade-off")
     st.pyplot(C.threshold_chart(r["thresholds"]))
     st.caption("Lower threshold = warn more often: recall goes up, precision down. The store can choose where to sit.")
