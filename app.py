@@ -32,6 +32,7 @@ def talk_track(r):
 def sec_data(r):
     p = r["profile"]
     st.header("1. The data")
+    st.info("In simple words: this is the history of products we use to teach the models, and the part we hide to test them.")
     c = st.columns(4)
     c[0].metric("Rows", f"{p['rows_total']:,}"); c[1].metric("Batches", f"{p['batches_total']:,}")
     c[2].metric("Stores", p["stores"]); c[3].metric("Categories", p["categories"])
@@ -59,6 +60,7 @@ Batches in both: **{p['batch_overlap']}**""")
 def sec_structure(r):
     p, pi = r["profile"], r["prep_info"]
     st.header("2. How the data is structured and prepared")
+    st.info("In simple words: we clean the data and turn it into numbers the models can use, in 13 small steps.")
     st.markdown("Every step below is done in the same order for both models. Steps marked **KNN only** are not needed by the Decision Tree.")
 
     st.subheader("Column funnel: from the file to the model input")
@@ -133,6 +135,7 @@ def sec_structure(r):
 
 def sec_skew(r):
     st.header("3. Skewness")
+    st.info("In simple words: some columns have a few very big values. KNN gets confused by them, so we shrink them. The Decision Tree does not need this.")
     st.subheader("What is skewness?")
     st.markdown("Skewness says whether the values of a column are balanced around the middle or have a **long tail on one side**. "
                 "Example: most products have 20-100 units left, but a few have 2,000. Those few big values stretch the tail to the right.")
@@ -167,6 +170,7 @@ def sec_skew(r):
 def sec_models(r):
     k, t = r["knn"], r["tree"]
     st.header("4. The two models and their parameters")
+    st.info("In simple words: KNN asks 'which past cases look like this one?'. The Decision Tree asks a chain of yes/no questions. We tried several settings and kept the best.")
     c1, c2 = st.columns(2)
     with c1:
         st.subheader("KNN")
@@ -184,53 +188,38 @@ def sec_models(r):
                     f"- Training time {t['train_seconds']:.2f}s, prediction time on test {t['predict_seconds']:.2f}s")
         st.pyplot(C.tree_depth_chart(t["grid"], t["best_leaf"]))
         st.caption("Grey keeps rising (memorising the past) while orange flattens - that gap is overfitting, so we stop at the best orange point.")
-    with st.expander("Full search tables"):
-        table(k["grid"].sort_values("cv_f1", ascending=False), {"cv_f1": "{:.4f}", "cv_std": "{:.4f}"})
-        table(t["grid"].sort_values("cv_f1", ascending=False), {"cv_f1": "{:.4f}", "train_f1": "{:.4f}"})
     st.caption("Settings were chosen by 5-fold GroupKFold (all days of one batch stay in the same fold) on the training data only.")
 
 
 def sec_results(r):
     mt = r["metrics"]
     st.header("5. Results on the test data")
+    st.info("In simple words: we ask both models about batches they have never seen, and check how often they are right.")
     st.pyplot(C.metrics_bars(mt))
-    cols = ["accuracy", "precision", "recall", "f1", "roc_auc", "specificity", "balanced_accuracy", "mcc", "log_loss", "brier"]
-    t = mt[cols].astype(float).reset_index().rename(columns={"index": "model"})
+    cols = ["accuracy", "precision", "recall", "f1", "roc_auc"]
+    t = mt.loc[["KNN", "Decision Tree"], cols].astype(float).reset_index().rename(columns={"index": "model"})
     table(t, {c: "{:.3f}" for c in cols})
-    st.subheader("Confusion matrices")
-    c = st.columns([1, 1, 2])
-    c[0].pyplot(C.confusion(mt, "KNN")); c[1].pyplot(C.confusion(mt, "Decision Tree"))
-    c[2].pyplot(C.roc(r["curves"], mt))
-    st.subheader("Overfitting check")
-    gap = pd.DataFrame(r["fit_gap"]).T.reset_index().rename(columns={"index": "model"})
-    table(gap, {"train_accuracy": "{:.3f}", "test_accuracy": "{:.3f}"})
-    st.caption("KNN with distance weights scores 100% on its own training rows (each row is its own nearest neighbour), so only the test column is honest.")
-    st.subheader("Accuracy by evening / category / store")
-    t1, t2, t3 = st.tabs(["Evening of shelf life", "Category", "Store"])
-    with t1:
-        st.pyplot(C.group_bar(r["breakdowns"]["evening_group"], "evening_group"))
-        st.caption("Later evenings are easier: the stock left shows the outcome more clearly. Evening 1 is the hardest and the one that matters most.")
-    with t2:
-        st.pyplot(C.group_bar(r["breakdowns"]["category"], "category"))
-    with t3:
-        st.pyplot(C.group_bar(r["breakdowns"]["store_id"], "store_id"))
-    with st.expander("What the words mean"):
+    with st.expander("What the words mean", expanded=True):
         st.markdown("""
 - **Accuracy** - out of all rows, how many were right.
-- **Precision** - when it warns 'at risk', how often it is right (low = many false alarms).
-- **Recall** - of the batches that really end up wasted, how many it caught (low = missed waste). Matters most here.
-- **F1** - balance of precision and recall.
-- **ROC-AUC** - how well it ranks risky above safe over all thresholds (1 = perfect, 0.5 = guess).
-- **Specificity** - of safe batches, how many it left alone.
-- **MCC / Balanced accuracy** - fair scores when classes are uneven.
-- **Log loss / Brier** - quality of the probability itself (lower is better).
-- **TP / FP / TN / FN** - caught / false alarm / correctly left / missed.""")
+- **Precision** - when the model warns 'at risk', how often it is right.
+- **Recall** - of the batches that really end up wasted, how many the model caught.
+- **F1** - one number that balances precision and recall.
+- **ROC-AUC** - how well the model puts risky batches above safe ones (1 = perfect, 0.5 = guessing).""")
+    st.subheader("Confusion matrices")
+    st.caption("Each box counts rows. Top-left and bottom-right are correct. The other two are mistakes: a false alarm, or a missed at-risk batch.")
+    c = st.columns(2)
+    c[0].pyplot(C.confusion(mt, "KNN")); c[1].pyplot(C.confusion(mt, "Decision Tree"))
+    st.subheader("Accuracy by evening of shelf life")
+    st.pyplot(C.group_bar(r["breakdowns"]["evening_group"], "evening_group"))
+    st.caption("Evening 1 = the day after delivery. Later evenings are easier because the stock left shows more clearly what will happen.")
 
 
 def sec_compare(r):
     mt, w = r["metrics"], r["winner"]
     lo = "KNN" if w == "Decision Tree" else "Decision Tree"
     st.header("6. Detailed model comparison")
+    st.info("In simple words: the two models side by side, and which one we pick.")
     st.subheader("Final comparison table")
     cols = ["accuracy", "precision", "recall", "f1", "roc_auc"]
     t = mt.loc[["KNN", "Decision Tree"], cols].astype(float)
