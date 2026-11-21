@@ -1,11 +1,24 @@
 # FreshSave
 
-Predicting which batches of fresh food will be wasted in a supermarket (retail), using KNN and a Decision Tree.
+Predicts which fresh-food batches will be wasted, using **KNN** and a **Decision Tree**, and compares them.
 
-This project is being rebuilt from scratch, step by step.
+## Structure
+```
+app.py                                  one-tab web app: "Model Train Details"
+data/store/                             simulated retail data (train 70% / test 30%, split by time and batch)
+src/data_prep.py                        shared: load, features, missing values, skewness
+src/evaluation.py                       shared: one scoring function for all models
+src/charts.py                           charts for the app
+src/model_deployment_train/
+    knn_model.py                        model 1
+    decision_tree_model.py              model 2
+    model_comparison.py                 model 3: compare + train everything
+```
 
-## What is here so far
-- `data/store/` - the simulated dataset (4 stores, 2 years, 18 columns): `store_data_full.csv`, `store_train_70.csv`, `store_test_30.csv` and `DATASET_DESCRIPTION.md`
-- `data/make_store_dataset.py` - the script that generated it
-
-The earlier version of the project is kept in the Git history (commit 8499b5f).
+## Run
+```
+pip install -r requirements.txt
+python -m src.model_deployment_train.model_comparison   # trains, saves to models/
+streamlit run app.py                                     # open the "Model Train Details" tab
+```
+(The app also has a "Train now" button if you skip the first command.)
