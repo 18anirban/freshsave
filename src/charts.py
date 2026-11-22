@@ -181,3 +181,20 @@ def risk_by_category(cat):
         ax.text(v + 1, i, f"{v:.0f}%", va="center", fontsize=8)
     ax.set_xlim(0, 110); ax.set_xlabel("average chance of waste (%)"); ax.grid(False)
     fig.tight_layout(); return fig
+
+
+def pct_bars_vertical(labels, values, ylabel):
+    fig, ax = _fig(6.5, 3)
+    b = ax.bar(labels, [v * 100 for v in values], color=RED)
+    for r, v in zip(b, values):
+        ax.text(r.get_x() + r.get_width() / 2, v * 100 + 1.5, f"{v * 100:.0f}%", ha="center", fontsize=8)
+    ax.set_ylim(0, max(values) * 100 * 1.25 + 5); ax.set_ylabel(ylabel); fig.tight_layout(); return fig
+
+
+def pct_bars_horizontal(labels, values, xlabel):
+    fig, ax = _fig(6.5, 0.4 * len(labels) + 1.2)
+    order = np.argsort(values)
+    ax.barh([labels[i] for i in order], [values[i] * 100 for i in order], color=RED)
+    for y, i in enumerate(order):
+        ax.text(values[i] * 100 + 1.5, y, f"{values[i] * 100:.0f}%", va="center", fontsize=8)
+    ax.set_xlim(0, 115); ax.set_xlabel(xlabel); ax.grid(False); fig.tight_layout(); return fig

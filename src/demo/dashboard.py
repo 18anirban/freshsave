@@ -71,3 +71,44 @@ def prediction_check(all_rows, threshold=0.5):
     batch["flagged High at least once"] = batch["highest_chance"] >= 0.70
     res["batch_table"] = batch.sort_values("highest_chance", ascending=False)
     return res
+
+
+# ====================================================================
+# SIMPLE KPIs for the final dashboard (all as % where possible)
+# ====================================================================
+HIGH = 0.70          # same line as the "High" risk level in scoring.py
+
+
+def _pct(a, b):
+    return a / b if b else 0.0
+
+
+def kpis(all_rows):
+    batches = all_rows["batch_id"].nunique()
+    high_ids = set(all_rows.loc[all_rows["level"] == "High", "batch_id"])
+    pc = prediction_check(all_rows)
+    bt = pc["batch_table"]                                     # batches whose life ended inside the week
+    flagged = bt["highest_chance"] >= HIGH
+    real = bt["really_at_risk"] == 1
+    caught, correct = int((flagged & real).sum()), int((flagged == real).sum())
+    t, decided, _ = actions_summary(all_rows)
+    return {
+        "batches": batches, "high_batches": len(high_ids), "high_pct": _pct(len(high_ids), batches),
+        "finished": pc["finished"], "open": pc["open"], "open_pct": _pct(pc["open"], pc["open"] + pc["finished"]),
+        "really_at_risk": int(real.sum()), "caught": caught, "caught_pct": _pct(caught, int(real.sum())),
+        "flagged": int(flagged.sum()), "correct_alerts_pct": _pct(caught, int(flagged.sum())),
+        "accuracy_pct": _pct(correct, len(bt)), "action_pct": decided,
+        "wasted_units": float(bt.loc[real, "units_wasted"].sum()),
+    }
+
+
+def daily_high_pct(all_rows):
+    g = all_rows.groupby("day")
+    return (g.apply(lambda d: (d["level"] == "High").mean(), include_groups=False)).rename("pct")
+
+
+def category_high_pct(all_rows):
+    """% of each category's batches that were flagged High at least once."""
+    n = all_rows.groupby("category")["batch_id"].nunique()
+    h = all_rows[all_rows["level"] == "High"].groupby("category")["batch_id"].nunique().reindex(n.index, fill_value=0)
+    return pd.DataFrame({"batches": n, "flagged High": h, "pct": h / n}).sort_values("pct", ascending=False).reset_index()

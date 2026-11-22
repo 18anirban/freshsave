@@ -22,12 +22,30 @@ def day_file_name(day):
     return "day_0_opening_stock.csv" if day == 0 else f"day_{day}_sales.csv"
 
 
-def day_tracker(done):
+def day_tracker(done, status="waiting"):
+    """One column per day. Green tick = day saved. Today shows the upload status."""
     cols = st.columns(8)
     for d, col in enumerate(cols):
-        state = "Done" if d < done else "Next" if d == done else "Waiting"
+        if d < done:
+            state = ":green[**✔ Done**]"
+        elif d == done:
+            state = {"waiting": "▶ Next: upload file", "uploaded": ":green[**✔ File uploaded**]",
+                     "error": ":red[**✖ Fix the file**]"}[status]
+        else:
+            state = ":gray[Waiting]"
         col.markdown(f"**Day {d}**  \n{DAY_NAMES[d]}  \n{state}")
     st.progress(done / 8)
+
+
+def show_tracker(slot, done, status):
+    with slot.container():
+        day_tracker(done, status)
+
+
+def step_line(flags):
+    """Mini checklist for the day in progress."""
+    names = ["File uploaded", "File checked", "Risk predicted", "Action recorded", "Day saved"]
+    return "   ".join((":green[✔ " + n + "]") if f else (":gray[○ " + n + "]") for n, f in zip(names, flags))
 
 
 @st.cache_resource
@@ -40,7 +58,7 @@ def table(df, fmt=None):
 
 
 # ---------------------------------------------------------------- day step
-def day_step(day, hist, model_name):
+def day_step(day, hist, model_name, tracker):
     title = ("Opening stock: inventory loaded on Saturday night, before any sales" if day == 0
              else f"{DAY_NAMES[day]} evening closing report (sales of the day and stock left)")
     st.subheader(f"Day {day} - upload: {title}")
@@ -53,6 +71,7 @@ def day_step(day, hist, model_name):
         df = pd.read_csv(DEMO_DIR / day_file_name(day))
     else:
         st.info("Waiting for today's file.")
+        st.markdown(step_line([0, 0, 0, 0, 0]))
         return
     prev = hist[day - 1]["date"].iloc[0] if day > 0 else None
     store = hist[0]["store_id"].iloc[0] if day > 0 else None
@@ -62,7 +81,9 @@ def day_step(day, hist, model_name):
     if errors:
         for e in errors:
             st.error(e)
+        show_tracker(tracker, day, "error")
         st.stop()
+    show_tracker(tracker, day, "uploaded")
     st.success(f"File OK: {len(df)} batches, store {df['store_id'].iloc[0]}, date {df['date'].iloc[0]}.")
 
     scored = S.score(df, model_name, get_model(model_name))
@@ -73,11 +94,14 @@ def day_step(day, hist, model_name):
         col.metric(f"{ICON[lv]} risk", int(n.get(lv, 0)))
     st.caption(f"Units on the shelf in High-risk batches: {int(scored.loc[scored['level'] == 'High', 'units_left'].sum()):,}")
 
+    steps = st.empty()
     st.subheader("Today's risk list (highest risk first)")
     if day == 0:
         st.caption("This is the inventory loaded on Saturday night. Suggestions and actions start from Day 1.")
         scored["suggested"], scored["action"] = "", ""
     scored["action"] = risk_table(day, scored)
+    acted = day == 0 or any(a != "Not decided" for a in scored["action"])
+    steps.markdown(step_line([1, 1, 1, acted, 0]) + ("" if day else "   (no actions on Day 0)"))
     if st.button(f"Save Day {day}", type="primary"):
         H.save_day(day, scored, model_name)
         for k in [k for k in st.session_state if k.startswith((f"up_{day}", f"demo_{day}", f"act_{day}_"))]:
@@ -117,54 +141,44 @@ def risk_table(day, scored):
 def final_dashboard(hist):
     st.header("Final dashboard - the 7-day week")
     a = D.combine(hist)
-    s = D.week_summary(a)
+    k = D.kpis(a)
+    st.caption("Day 0 (Saturday night) to Day 7 (Saturday evening). One store. Simulated data.")
+
+    st.subheader("Key numbers")
     c = st.columns(4)
-    c[0].metric("Days covered", f"{s['days']} (Day 0-7)"); c[1].metric("Batches tracked", s["batches"])
-    c[2].metric("Batches flagged High", s["high_batches"]); c[3].metric("High-risk alerts raised", s["high_alerts"])
+    c[0].metric("Batches tracked", k["batches"])
+    c[1].metric("Flagged High risk", f"{k['high_pct'] * 100:.0f}%", f"{k['high_batches']} of {k['batches']} batches", delta_color="off")
+    c[2].metric("Alerts acted on", f"{k['action_pct'] * 100:.0f}%", "High-risk rows with an action", delta_color="off")
+    c[3].metric("Batches still open", f"{k['open_pct'] * 100:.0f}%", f"{k['open']} not finished this week", delta_color="off")
+    st.markdown("**How well did the model do?** (only batches whose life ended this week)")
+    c = st.columns(3)
+    c[0].metric("Waste caught", f"{k['caught_pct'] * 100:.0f}%", f"{k['caught']} of {k['really_at_risk']} wasting batches flagged", delta_color="off")
+    c[1].metric("Alerts that were right", f"{k['correct_alerts_pct'] * 100:.0f}%", f"{k['caught']} of {k['flagged']} High alerts", delta_color="off")
+    c[2].metric("Overall accuracy", f"{k['accuracy_pct'] * 100:.0f}%", f"on {k['finished']} finished batches", delta_color="off")
+    st.caption("One small week of data. The full test scores in 'Model Train Details' are the model's real accuracy.")
 
-    st.subheader("Risk trend, day by day")
-    st.pyplot(C.risk_trend(D.daily_counts(a)))
-    st.caption("Each bar is one evening's file: how many batches were High, Medium or Low risk.")
+    st.subheader("% of the shelf at High risk, day by day")
+    daily = D.daily_high_pct(a)
+    st.pyplot(C.pct_bars_vertical([f"Day {d}" for d in daily.index], list(daily.values), "% of batches High risk"))
 
-    st.subheader("Risk by category")
-    cat = D.by_category(a)
-    c1, c2 = st.columns([3, 2])
-    c1.pyplot(C.risk_by_category(cat))
-    with c2:
-        table(cat, {"average chance of waste": "{:.0%}"})
+    st.subheader("% of batches flagged High, by category")
+    cat = D.category_high_pct(a)
+    st.pyplot(C.pct_bars_horizontal(list(cat["category"]), list(cat["pct"]), "% of batches flagged High at least once"))
 
-    st.subheader("Repeat-risk products (High on 3 or more days)")
-    rep = D.repeat_risk(a)
-    if len(rep):
-        table(rep, {"last_chance": "{:.0%}"})
-    else:
-        st.write("None this week.")
-
-    st.subheader("Actions the manager took on High-risk rows")
-    t, decided, disc = D.actions_summary(a)
-    st.write(f"Day 1 to Day 7: an action was recorded on {pct(decided)} of High-risk rows.")
-    table(t)
-    if len(disc):
-        st.caption("Discount levels used")
-        table(disc)
-
-    st.subheader("Prediction check - predicted vs what really happened")
-    pc = D.prediction_check(a)
-    st.write(f"Only batches whose life ended inside the week can be checked: **{pc['finished']} batches** ({pc['rows']} daily rows). "
-             f"{pc['open']} batches were still on the shelf at the end of the week, so their result is not known yet.")
-    if "metrics" in pc:
-        m = pc["metrics"]
-        c = st.columns(4)
-        for col, (lab, k) in zip(c, [("Accuracy", "accuracy"), ("Precision", "precision"), ("Recall", "recall"), ("F1", "f1")]):
-            col.metric(lab, f"{m[k]:.3f}")
-        st.caption("Scores use a 50% line on every daily row. This is one small week, so use the full test scores in 'Model Train Details' as the model's accuracy.")
-        c1, c2 = st.columns([1, 2])
-        mt = pd.DataFrame({"tn": [m["tn"]], "fp": [m["fp"]], "fn": [m["fn"]], "tp": [m["tp"]]}, index=["Model"])
-        c1.pyplot(C.confusion(mt, "Model"))
-        with c2:
-            table(pc["batch_table"].rename(columns={"highest_chance": "highest chance", "really_at_risk": "really at risk",
-                                                    "units_wasted": "units wasted"}), {"highest chance": "{:.0%}"})
-
+    with st.expander("How each number is calculated"):
+        st.markdown(f"""
+- **Batches tracked** - different batches seen in the 8 files.
+- **Flagged High risk** - batches that were High (70% chance of waste or more) at least once, divided by batches tracked.
+- **Alerts acted on** - High-risk rows from Day 1 to Day 7 where the manager chose an action, divided by all High-risk rows.
+- **Batches still open** - batches whose shelf life had not ended by Day 7, so we do not know their result yet.
+- **Waste caught** - of the batches that really ended up wasted, how many were flagged High at least once.
+- **Alerts that were right** - of the batches flagged High, how many really ended up wasted.
+- **Overall accuracy** - finished batches where the model's High flag matched what really happened.
+""")
+    with st.expander("Batch-by-batch check"):
+        pc = D.prediction_check(a)
+        table(pc["batch_table"].rename(columns={"highest_chance": "highest chance", "really_at_risk": "really at risk",
+                                                "units_wasted": "units wasted"}), {"highest chance": "{:.0%}"})
     st.download_button("Download full week (CSV)", a.to_csv(index=False), "freshsave_demo_week.csv", "text/csv")
 
 
@@ -187,7 +201,8 @@ def demo_page():
     hist = H.load_all()
     done = len(hist)
     locked = H.saved_model()
-    day_tracker(done)
+    tracker = st.empty()
+    show_tracker(tracker, done, "waiting")
 
     if done == 0:
         model_name = st.radio("Model for the demo", list(S.MODEL_FILES), horizontal=True,
@@ -197,7 +212,7 @@ def demo_page():
         st.caption(f"Model: **{model_name}** (fixed for the week)  |  Store: **{hist[0]['store_id'].iloc[0]}**")
 
     if done <= H.LAST_DAY:
-        day_step(done, hist, model_name)
+        day_step(done, hist, model_name, tracker)
     else:
         final_dashboard(hist)
 
