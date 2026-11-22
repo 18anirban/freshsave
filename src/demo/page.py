@@ -58,13 +58,32 @@ def table(df, fmt=None):
 
 
 # ---------------------------------------------------------------- day step
+def compact_uploader_css(day):
+    """Make the upload box small: just a Browse button and the file name."""
+    st.markdown(f"""<style>
+.st-key-up_{day} [data-testid="stFileUploaderDropzone"] {{ padding: 0.35rem 0.6rem; min-height: 0; }}
+.st-key-up_{day} [data-testid="stFileUploaderDropzoneInstructions"] {{ display: none; }}
+</style>""", unsafe_allow_html=True)
+
+
+def apply_bulk(day, ids, bulk_key):
+    """Callback: give the chosen action to every batch currently shown."""
+    action = st.session_state[bulk_key]
+    acts = st.session_state.setdefault(f"acts_{day}", {})
+    for b in ids:
+        acts[b] = action
+        st.session_state[f"act_{day}_{b}"] = action
+
+
 def day_step(day, hist, model_name, tracker):
     title = ("Opening stock: inventory loaded on Saturday night, before any sales" if day == 0
              else f"{DAY_NAMES[day]} evening closing report (sales of the day and stock left)")
     st.subheader(f"Day {day} - upload: {title}")
-    st.caption("CSV with the same columns as the training data (no outcome columns). Or use the ready-made demo file.")
-    up = st.file_uploader("Upload CSV", type="csv", key=f"up_{day}")
-    use_demo = st.checkbox(f"Use demo file ({day_file_name(day)})", key=f"demo_{day}")
+    compact_uploader_css(day)
+    c_up, c_demo, c_save = st.columns([3, 3, 1.6])
+    up = c_up.file_uploader("Upload CSV", type="csv", key=f"up_{day}", label_visibility="collapsed")
+    use_demo = c_demo.checkbox(f"Use demo file ({day_file_name(day)})", key=f"demo_{day}")
+    st.caption("CSV with the same columns as the training data (no outcome columns).")
     if up is not None:
         df = pd.read_csv(up)
     elif use_demo:
@@ -87,6 +106,18 @@ def day_step(day, hist, model_name, tracker):
     st.success(f"File OK: {len(df)} batches, store {df['store_id'].iloc[0]}, date {df['date'].iloc[0]}.")
 
     scored = S.score(df, model_name, get_model(model_name))
+    acts = st.session_state.setdefault(f"acts_{day}", {})
+    if c_save.button(f"Save Day {day}", type="primary", key=f"save_{day}"):          # right beside the upload box
+        if day == 0:
+            scored["suggested"], scored["action"] = "", ""
+        else:
+            scored["action"] = [acts.get(b, "Not decided") for b in scored["batch_id"]]
+        H.save_day(day, scored, model_name)
+        prefixes = (f"up_{day}", f"demo_{day}", f"act_{day}_", f"acts_{day}", f"fcat_{day}", f"flvl_{day}", f"bulk_{day}")
+        for k in [k for k in st.session_state if str(k).startswith(prefixes)]:
+            st.session_state.pop(k, None)
+        st.rerun()
+
     n = scored["level"].value_counts()
     c = st.columns(4)
     c[0].metric("Batches checked", len(scored))
@@ -98,18 +129,35 @@ def day_step(day, hist, model_name, tracker):
     st.subheader("Today's risk list (highest risk first)")
     if day == 0:
         st.caption("This is the inventory loaded on Saturday night. Suggestions and actions start from Day 1.")
-        scored["suggested"], scored["action"] = "", ""
-    scored["action"] = risk_table(day, scored)
-    acted = day == 0 or any(a != "Not decided" for a in scored["action"])
+    view = filter_bar(day, scored, acts)
+    risk_table(day, view, acts)
+    acted = day == 0 or any(v != "Not decided" for v in acts.values())
     steps.markdown(step_line([1, 1, 1, acted, 0]) + ("" if day else "   (no actions on Day 0)"))
-    if st.button(f"Save Day {day}", type="primary"):
-        H.save_day(day, scored, model_name)
-        for k in [k for k in st.session_state if k.startswith((f"up_{day}", f"demo_{day}", f"act_{day}_"))]:
-            st.session_state.pop(k, None)
-        st.rerun()
 
 
-def risk_table(day, scored):
+def filter_bar(day, scored, acts):
+    """Dropdowns to show one category / one risk type, and one action for all rows shown."""
+    c = st.columns([1.5, 1.5, 2.2, 1.8])
+    cat = c[0].selectbox("Category", ["All"] + sorted(scored["category"].unique()), key=f"fcat_{day}")
+    lvl = c[1].selectbox("Risk type", ["All", "High", "Medium", "Low"], key=f"flvl_{day}")
+    view = scored
+    if cat != "All":
+        view = view[view["category"] == cat]
+    if lvl != "All":
+        view = view[view["level"] == lvl]
+    if day > 0:
+        c[2].selectbox("Action for all rows shown", S.ACTIONS[1:], index=S.ACTIONS[1:].index("Discount 50%"), key=f"bulk_{day}")
+        c[3].markdown("<div style='height:1.75rem'></div>", unsafe_allow_html=True)
+        c[3].button(f"Apply to {len(view)} rows", key=f"apply_{day}", on_click=apply_bulk,
+                    args=(day, list(view["batch_id"]), f"bulk_{day}"))
+        st.caption(f"Showing {len(view)} of {len(scored)} batches. Pick a category and risk type, choose an action, click Apply "
+                   "to give it to all rows shown, or choose an action row by row.")
+    else:
+        st.caption(f"Showing {len(view)} of {len(scored)} batches.")
+    return view
+
+
+def risk_table(day, view, acts):
     """Table with one dropdown per row (Day 1 onward). Each box changes colour after a choice."""
     heads = ["Risk", "Chance %", "Batch", "Category", "Product", "Days left", "Units left", "Why"]
     widths = [1, 0.9, 1, 1.2, 1.6, 0.8, 0.9, 4]
@@ -118,8 +166,8 @@ def risk_table(day, scored):
         widths += [2, 2]
     for col, h in zip(st.columns(widths), heads):
         col.markdown(f"**{h}**")
-    chosen, css = [], []
-    for i, r in scored.iterrows():
+    css = []
+    for _, r in view.iterrows():
         cols = st.columns(widths)
         vals = [ICON[r["level"]], f"{r['chance'] * 100:.0f}", r["batch_id"], r["category"], r["sub_category"],
                 int(r["days_left"]), int(r["units_left"]), r["reason"]]
@@ -127,14 +175,15 @@ def risk_table(day, scored):
             col.write(v)
         if day > 0:
             cols[8].write(r["suggested"])
-            key = f"act_{day}_{i}"
+            key = f"act_{day}_{r['batch_id']}"
+            if key not in st.session_state:                       # box was hidden by a filter, restore its choice
+                st.session_state[key] = acts.get(r["batch_id"], "Not decided")
             pick = cols[9].selectbox("Action taken", S.ACTIONS, key=key, label_visibility="collapsed")
-            chosen.append(pick)
+            acts[r["batch_id"]] = pick
             css.append(f'.st-key-{key} [data-baseweb="select"] > div {{ background-color: {S.action_colour(pick)} !important; }}'
                        f'.st-key-{key} [data-baseweb="select"] * {{ color: #111 !important; }}')
     if css:
         st.markdown("<style>" + "".join(css) + "</style>", unsafe_allow_html=True)
-    return chosen if day > 0 else [""] * len(scored)
 
 
 # ---------------------------------------------------------------- final dashboard

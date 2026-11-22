@@ -8,6 +8,7 @@ import streamlit as st
 from src import charts as C
 from src.model_deployment_train.model_comparison import load_results, train_all
 from src.demo.page import demo_page
+from src.landing import landing
 
 st.set_page_config(page_title="FreshSave - Model Train Details", layout="wide")
 
@@ -209,19 +210,6 @@ def sec_compare(r):
 
 
 # ---------------------------------------------------------------- pages
-def landing():
-    st.title("FreshSave")
-    st.caption("Predicting which fresh batches will be wasted, using KNN and Decision Tree")
-    st.write("")
-    c1, c2, _ = st.columns([1, 1, 3])
-    if c1.button("Model Train Details", type="primary"):
-        st.session_state["page"] = "details"
-        st.rerun()
-    if c2.button("Demo", type="primary"):
-        st.session_state["page"] = "demo"
-        st.rerun()
-
-
 def details():
     if st.button("< Back"):
         st.session_state["page"] = "home"
