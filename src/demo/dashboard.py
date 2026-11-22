@@ -112,3 +112,107 @@ def category_high_pct(all_rows):
     n = all_rows.groupby("category")["batch_id"].nunique()
     h = all_rows[all_rows["level"] == "High"].groupby("category")["batch_id"].nunique().reindex(n.index, fill_value=0)
     return pd.DataFrame({"batches": n, "flagged High": h, "pct": h / n}).sort_values("pct", ascending=False).reset_index()
+
+
+# ====================================================================
+# WASTE OUTCOMES AND NEXT-WEEK ORDER RECOMMENDATIONS
+# Rule is learned from the demo week and TESTED on the following week
+# (real batches the rule has never seen), so the saving is not hindsight.
+# ====================================================================
+BUFFER = 0.10                              # safety stock kept on top of what really sold
+TEST_FILE = ROOT / "data" / "store" / "store_test_30.csv"
+WEEK = ("2024-11-02", "2024-11-09")        # Day 0 .. Day 7 (Saturday to Saturday)
+NEXT_WEEK = ("2024-11-10", "2024-11-16")   # the week after Day 7
+
+
+def _batches():
+    """One row per batch of the demo store: input (received) and final (wasted) units."""
+    store = pd.read_csv(KEY_FILE)["store_id"].iloc[0]
+    t = pd.read_csv(TEST_FILE)
+    t = t[t["store_id"] == store]
+    b = t.groupby("batch_id").agg(category=("category", "first"), product=("sub_category", "first"),
+                                  first=("date", "min"), last=("date", "max"), received=("units_received", "first"),
+                                  wasted=("units_wasted_final", "first"), cost_price=("cost_price", "first"),
+                                  waste_cost=("waste_cost", "first")).reset_index()
+    b["first"], b["last"] = pd.to_datetime(b["first"]), pd.to_datetime(b["last"])
+    b["used"] = b["received"] - b["wasted"]
+    b["waste_pct"] = b["wasted"] / b["received"]
+    return b
+
+
+def finished_batches(week=WEEK):
+    """Batches whose life ended inside the week - their result is known."""
+    b = _batches()
+    return b[(b["last"] >= week[0]) & (b["last"] <= week[1])].reset_index(drop=True)
+
+
+def next_week_batches(week=NEXT_WEEK):
+    b = _batches()
+    return b[(b["first"] >= week[0]) & (b["first"] <= week[1])].reset_index(drop=True)
+
+
+def waste_headline(fin):
+    rec, was = float(fin["received"].sum()), float(fin["wasted"].sum())
+    return {"finished": len(fin), "received": rec, "wasted": was, "waste_rate": was / rec if rec else 0.0,
+            "waste_cost": float(fin["waste_cost"].sum()), "batches_with_waste": int((fin["wasted"] > 0).sum())}
+
+
+def category_input_waste(fin):
+    g = fin.groupby("category").agg(batches=("batch_id", "count"), received=("received", "sum"),
+                                    wasted=("wasted", "sum"), waste_cost=("waste_cost", "sum"))
+    g["waste_pct"] = g["wasted"] / g["received"]
+    return g.sort_values("waste_pct", ascending=False).reset_index()
+
+
+# ---- the recommendation rule -------------------------------------------------
+def order_rules(fin, buffer=BUFFER, min_batches=2):
+    """Order factor per product = (units that really sold x (1 + buffer)) / units ordered, never above 1.
+    Products with fewer than `min_batches` finished batches use their category's factor."""
+    gp = fin.groupby("product").agg(category=("category", "first"), batches=("batch_id", "count"),
+                                    received=("received", "sum"), used=("used", "sum"), wasted=("wasted", "sum"))
+    gc = fin.groupby("category").agg(received=("received", "sum"), used=("used", "sum"))
+    fcat = (gc["used"] * (1 + buffer) / gc["received"]).clip(upper=1.0)
+    fprod = (gp["used"] * (1 + buffer) / gp["received"]).clip(upper=1.0)
+    gp["basis"] = ["product" if n >= min_batches else "category" for n in gp["batches"]]
+    gp["factor"] = [fprod[p] if gp.loc[p, "basis"] == "product" else fcat[gp.loc[p, "category"]] for p in gp.index]
+    gp["waste_pct"] = gp["wasted"] / gp["received"]
+    gp["avg_ordered"] = gp["received"] / gp["batches"]
+    gp["avg_recommended"] = gp["avg_ordered"] * gp["factor"]
+    gp["change_pct"] = gp["factor"] - 1
+    return gp.reset_index().sort_values("change_pct").reset_index(drop=True), fcat
+
+
+def apply_rules(rules, fcat, batches):
+    """Replay a week: what would the order, the waste and the lost sales have been?"""
+    f = rules.set_index("product")["factor"]
+    b = batches.copy()
+    b["factor"] = [f[p] if p in f.index else fcat.get(c, 1.0) for p, c in zip(b["product"], b["category"])]
+    b["recommended"] = np.ceil(b["received"] * b["factor"]).astype(int)
+    b["waste_after"] = np.maximum(0, b["recommended"] - b["used"])
+    b["lost_sales"] = np.maximum(0, b["used"] - b["recommended"])
+    b["waste_avoided"] = b["wasted"] - b["waste_after"]
+    b["money_saved"] = b["waste_avoided"] * b["cost_price"]
+    return b
+
+
+def savings_summary(b):
+    w, wa = float(b["wasted"].sum()), float(b["waste_after"].sum())
+    r, rn = float(b["received"].sum()), float(b["recommended"].sum())
+    return {"batches": len(b), "wasted_now": w, "waste_after": wa, "waste_saving_pct": 1 - wa / w if w else 0.0,
+            "waste_rate_now": w / r, "waste_rate_after": wa / rn if rn else 0.0,
+            "less_ordered_pct": 1 - rn / r, "lost_sales_pct": float(b["lost_sales"].sum()) / float(b["used"].sum()),
+            "money_saved": float(b["money_saved"].sum()), "ordered_now": r, "ordered_new": rn}
+
+
+def rolling_check(buffer=BUFFER):
+    """Same rule, learned on each week and tested on the next one - across the whole test period."""
+    b = _batches(); out = []
+    for w0 in pd.date_range("2024-06-24", "2024-12-16", freq="7D"):
+        tr = b[(b["last"] >= w0) & (b["last"] <= w0 + pd.Timedelta(days=7))]
+        te = b[(b["first"] > w0 + pd.Timedelta(days=7)) & (b["first"] <= w0 + pd.Timedelta(days=14))]
+        if len(tr) < 30 or len(te) < 30:
+            continue
+        rules, fcat = order_rules(tr, buffer)
+        sm = savings_summary(apply_rules(rules, fcat, te))
+        out.append({"week_start": w0.date(), "waste_saving_pct": sm["waste_saving_pct"], "lost_sales_pct": sm["lost_sales_pct"]})
+    return pd.DataFrame(out)

@@ -52,7 +52,7 @@ key = (week.groupby("batch_id")
             sub_category=("sub_category", "first"), shelf_life_days=("shelf_life_days", "first"),
             first_date=("date", "min"), last_date_in_week=("date", "max"),
             units_received=("units_received", "first"), units_wasted_final=("units_wasted_final", "first"),
-            at_risk=("at_risk", "first"))
+            cost_price=("cost_price", "first"), waste_cost=("waste_cost", "first"), at_risk=("at_risk", "first"))
        .reset_index())
 last_day = test.groupby("batch_id")["date"].max()        # a batch is "finished" if its last evening is inside the week
 key["batch_ends_in_week"] = key["batch_id"].map(last_day).isin(dates)

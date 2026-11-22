@@ -198,3 +198,17 @@ def pct_bars_horizontal(labels, values, xlabel):
     for y, i in enumerate(order):
         ax.text(values[i] * 100 + 1.5, y, f"{values[i] * 100:.0f}%", va="center", fontsize=8)
     ax.set_xlim(0, 115); ax.set_xlabel(xlabel); ax.grid(False); fig.tight_layout(); return fig
+
+
+def category_input_waste(cat):
+    """Units received (input) next to units wasted, per category, with waste % on top."""
+    d = cat.sort_values("waste_pct", ascending=False)
+    x = np.arange(len(d)); w = .38
+    fig, ax = _fig(7.5, 3.4)
+    ax.bar(x - w / 2, d["received"], w, color=BLUE, label="Input (units received)")
+    ax.bar(x + w / 2, d["wasted"], w, color=RED, label="Final (units wasted)")
+    for i, (rv, wv, pc) in enumerate(zip(d["received"], d["wasted"], d["waste_pct"])):
+        ax.text(i + w / 2, wv, f"{pc * 100:.0f}%", ha="center", va="bottom", fontsize=8, fontweight="bold")
+    ax.set_xticks(x); ax.set_xticklabels(d["category"], rotation=20); ax.set_ylabel("units")
+    ax.set_ylim(0, d["received"].max() * 1.22); ax.legend(ncol=2, loc="upper right", frameon=False)
+    fig.tight_layout(); return fig

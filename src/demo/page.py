@@ -138,47 +138,102 @@ def risk_table(day, scored):
 
 
 # ---------------------------------------------------------------- final dashboard
+def box(text):
+    """Explanation box: every number and rule on the dashboard is explained in one of these."""
+    st.info(text)
+
+
 def final_dashboard(hist):
     st.header("Final dashboard - the 7-day week")
+    st.caption("Day 0 (Saturday night) to Day 7 (Saturday evening). One store. Simulated data.")
     a = D.combine(hist)
     k = D.kpis(a)
-    st.caption("Day 0 (Saturday night) to Day 7 (Saturday evening). One store. Simulated data.")
+    fin = D.finished_batches()
+    wh = D.waste_headline(fin)
 
-    st.subheader("Key numbers")
+    # ---------------- 1. headline KPIs
+    st.subheader("1. Key numbers for the week")
+    c = st.columns(5)
+    c[0].metric("Waste rate", f"{wh['waste_rate'] * 100:.0f}%", f"{wh['wasted']:,.0f} of {wh['received']:,.0f} units", delta_color="off")
+    c[1].metric("Waste cost", f"${wh['waste_cost']:,.0f}", f"{wh['batches_with_waste']} batches with waste", delta_color="off")
+    c[2].metric("Waste caught", f"{k['caught_pct'] * 100:.0f}%", f"{k['caught']} of {k['really_at_risk']} wasting batches", delta_color="off")
+    c[3].metric("Alerts that were right", f"{k['correct_alerts_pct'] * 100:.0f}%", f"{k['caught']} of {k['flagged']} High alerts", delta_color="off")
+    c[4].metric("Alerts acted on", f"{k['action_pct'] * 100:.0f}%", "High-risk rows with an action", delta_color="off")
+    box(f"""**How these are calculated**  (on the {wh['finished']} batches whose life ended this week; {k['open']} batches were still on the shelf, so their result is not known yet)
+
+- **Waste rate** = units wasted / units received = {wh['wasted']:,.0f} / {wh['received']:,.0f} = {wh['waste_rate'] * 100:.1f}%.
+- **Waste cost** = units wasted x cost price of each batch, added up = ${wh['waste_cost']:,.0f}.
+- **Waste caught** = of the {k['really_at_risk']} batches that really ended up at risk (20% or more wasted), how many the model flagged High (70% chance or more) at least once = {k['caught']} / {k['really_at_risk']}.
+- **Alerts that were right** = of the {k['flagged']} batches flagged High, how many really ended up at risk = {k['caught']} / {k['flagged']}.
+- **Alerts acted on** = High-risk rows from Day 1 to Day 7 where the manager picked an action / all High-risk rows.""")
+
+    # ---------------- 2. category input vs waste
+    st.subheader("2. Input vs waste by category")
+    cat = D.category_input_waste(fin)
+    st.pyplot(C.category_input_waste(cat))
+    table(cat.rename(columns={"received": "input (units received)", "wasted": "final (units wasted)", "waste_pct": "waste %",
+                              "waste_cost": "waste cost ($)"}), {"waste %": "{:.0%}", "waste cost ($)": "${:,.0f}"})
+    worst = cat.iloc[0]
+    box(f"""**How to read it**
+
+- **Input** (blue) = units received in the batches that finished this week. **Final** (red) = units that ended up wasted.
+- **Waste %** = wasted / received for the category. Highest this week: **{worst['category']}** at {worst['waste_pct'] * 100:.0f}% ({worst['wasted']:,.0f} of {worst['received']:,.0f} units).
+- Each category adds up its batches, so a big batch counts more than a small one.""")
+    with st.expander("Every finished batch: input vs final"):
+        show = fin[["batch_id", "category", "product", "received", "wasted", "waste_pct", "waste_cost"]].sort_values("waste_pct", ascending=False)
+        table(show.rename(columns={"received": "input (units received)", "wasted": "final (units wasted)", "waste_pct": "waste %",
+                                   "waste_cost": "waste cost ($)"}), {"waste %": "{:.0%}", "waste cost ($)": "${:,.2f}"})
+
+    # ---------------- 3. next-week orders
+    st.subheader("3. Recommended orders for next week")
+    rules, fcat = D.order_rules(fin)
+    nw = D.apply_rules(rules, fcat, D.next_week_batches())
+    sm = D.savings_summary(nw)
+    rc = D.rolling_check()
     c = st.columns(4)
-    c[0].metric("Batches tracked", k["batches"])
-    c[1].metric("Flagged High risk", f"{k['high_pct'] * 100:.0f}%", f"{k['high_batches']} of {k['batches']} batches", delta_color="off")
-    c[2].metric("Alerts acted on", f"{k['action_pct'] * 100:.0f}%", "High-risk rows with an action", delta_color="off")
-    c[3].metric("Batches still open", f"{k['open_pct'] * 100:.0f}%", f"{k['open']} not finished this week", delta_color="off")
-    st.markdown("**How well did the model do?** (only batches whose life ended this week)")
-    c = st.columns(3)
-    c[0].metric("Waste caught", f"{k['caught_pct'] * 100:.0f}%", f"{k['caught']} of {k['really_at_risk']} wasting batches flagged", delta_color="off")
-    c[1].metric("Alerts that were right", f"{k['correct_alerts_pct'] * 100:.0f}%", f"{k['caught']} of {k['flagged']} High alerts", delta_color="off")
-    c[2].metric("Overall accuracy", f"{k['accuracy_pct'] * 100:.0f}%", f"on {k['finished']} finished batches", delta_color="off")
-    st.caption("One small week of data. The full test scores in 'Model Train Details' are the model's real accuracy.")
+    c[0].metric("Waste saved next week", f"{sm['waste_saving_pct'] * 100:.0f}%", f"{sm['wasted_now']:,.0f} to {sm['waste_after']:,.0f} units", delta_color="off")
+    c[1].metric("Waste rate", f"{sm['waste_rate_after'] * 100:.0f}%", f"was {sm['waste_rate_now'] * 100:.0f}%", delta_color="off")
+    c[2].metric("Money saved", f"${sm['money_saved']:,.0f}", "waste cost avoided", delta_color="off")
+    c[3].metric("Sales at risk", f"{sm['lost_sales_pct'] * 100:.0f}%", "units that might not be in stock", delta_color="off")
+    st.caption(f"Typical result over {len(rc)} different weeks with the same rule: {rc['waste_saving_pct'].mean() * 100:.0f}% waste saved "
+               f"(lowest {rc['waste_saving_pct'].min() * 100:.0f}%, highest {rc['waste_saving_pct'].max() * 100:.0f}%), "
+               f"{rc['lost_sales_pct'].mean() * 100:.0f}% sales at risk.")
+    top = rules.iloc[0]
+    box(f"""**The recommendation logic, step by step**
 
-    st.subheader("% of the shelf at High risk, day by day")
-    daily = D.daily_high_pct(a)
-    st.pyplot(C.pct_bars_vertical([f"Day {d}" for d in daily.index], list(daily.values), "% of batches High risk"))
+1. **Take the finished batches of the week** and, for each product, add up the units ordered (received) and the units wasted.
+2. **Units that really sold** = received - wasted.
+3. **Recommended order = units that sold x 1.10.** The 10% is a safety buffer, so we do not run out. The order is never raised above what was ordered.
+4. **Change % = recommended / ordered - 1.**
+5. A product with fewer than 2 finished batches has too little history, so it uses its category's change instead (basis column in the table).
 
-    st.subheader("% of batches flagged High, by category")
-    cat = D.category_high_pct(a)
-    st.pyplot(C.pct_bars_horizontal(list(cat["category"]), list(cat["pct"]), "% of batches flagged High at least once"))
+*Worked example:* **{top['product']}** - {top['batches']} batches, {top['received']:,.0f} units ordered, {top['wasted']:,.0f} wasted, so {top['used']:,.0f} sold. {top['used']:,.0f} x 1.10 = {top['used'] * 1.1:,.0f}. {top['used'] * 1.1:,.0f} / {top['received']:,.0f} = {top['factor']:.2f}, so order **{abs(top['change_pct']) * 100:.0f}% less**.
 
-    with st.expander("How each number is calculated"):
-        st.markdown(f"""
-- **Batches tracked** - different batches seen in the 8 files.
-- **Flagged High risk** - batches that were High (70% chance of waste or more) at least once, divided by batches tracked.
-- **Alerts acted on** - High-risk rows from Day 1 to Day 7 where the manager chose an action, divided by all High-risk rows.
-- **Batches still open** - batches whose shelf life had not ended by Day 7, so we do not know their result yet.
-- **Waste caught** - of the batches that really ended up wasted, how many were flagged High at least once.
-- **Alerts that were right** - of the batches flagged High, how many really ended up wasted.
-- **Overall accuracy** - finished batches where the model's High flag matched what really happened.
-""")
-    with st.expander("Batch-by-batch check"):
-        pc = D.prediction_check(a)
-        table(pc["batch_table"].rename(columns={"highest_chance": "highest chance", "really_at_risk": "really at risk",
-                                                "units_wasted": "units wasted"}), {"highest chance": "{:.0%}"})
+**How the saving is worked out.** We did not use this week's own results (that would be hindsight). The rule is applied to the **{sm['batches']} real batches delivered the week after** (10-16 Nov), which it has never seen:
+- **New order** = old order x the product's factor, rounded up.
+- **Waste after** = new order - units that really sold (not below 0).
+- **Waste saved %** = 1 - waste after / waste before = 1 - {sm['waste_after']:,.0f} / {sm['wasted_now']:,.0f}.
+- **Money saved** = waste avoided x cost price.
+- **Sales at risk** = units that sold last time but would be above the new, smaller order, as a share of units sold. This is the price of ordering less. It is a minimum: where a batch sold out, we cannot see the extra demand.
+
+**Limits.** It assumes next week sells like this week. A big promotion, a holiday or weather would change that. Based on one week of history per product, so treat it as guidance for the manager, not a guarantee.""")
+    cols = ["product", "category", "batches", "avg_ordered", "waste_pct", "change_pct", "avg_recommended", "basis"]
+    table(rules[cols].rename(columns={"avg_ordered": "avg order per batch now", "waste_pct": "waste %", "change_pct": "recommended change",
+                                      "avg_recommended": "recommended order per batch"}),
+          {"avg order per batch now": "{:,.0f}", "waste %": "{:.0%}", "recommended change": "{:+.0%}", "recommended order per batch": "{:,.0f}"})
+    with st.expander(f"All {sm['batches']} batches of next week: old order, recommended order, waste"):
+        t = nw[["batch_id", "category", "product", "received", "recommended", "wasted", "waste_after", "lost_sales", "money_saved"]]
+        table(t.rename(columns={"received": "old order", "recommended": "recommended order", "wasted": "waste with old order",
+                                "waste_after": "waste with recommended", "lost_sales": "sales at risk", "money_saved": "money saved ($)"}),
+              {"money saved ($)": "${:,.0f}"})
+
+    # ---------------- 4. risk during the week
+    with st.expander("Risk during the week (% of batches High risk)"):
+        daily = D.daily_high_pct(a)
+        st.pyplot(C.pct_bars_vertical([f"Day {d}" for d in daily.index], list(daily.values), "% of batches High risk"))
+        cat2 = D.category_high_pct(a)
+        st.pyplot(C.pct_bars_horizontal(list(cat2["category"]), list(cat2["pct"]), "% of batches flagged High at least once"))
+        box("**High risk** = the model gives a 70% chance of waste or more. Daily bar = High-risk batches / batches on the shelf that evening.")
     st.download_button("Download full week (CSV)", a.to_csv(index=False), "freshsave_demo_week.csv", "text/csv")
 
 
