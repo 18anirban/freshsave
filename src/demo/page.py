@@ -23,9 +23,10 @@ def day_file_name(day):
 
 
 def day_tracker(done, status="waiting"):
-    """One column per day. Green tick = day saved. Today shows the upload status."""
-    cols = st.columns(8)
-    for d, col in enumerate(cols):
+    """One column per day, plus the Final Dashboard tab on the right.
+    Green tick = day saved. The dashboard tab unlocks when Day 7 is saved."""
+    cols = st.columns([1] * 8 + [1.5])
+    for d, col in enumerate(cols[:8]):
         if d < done:
             state = ":green[**✔ Done**]"
         elif d == done:
@@ -34,6 +35,12 @@ def day_tracker(done, status="waiting"):
         else:
             state = ":gray[Waiting]"
         col.markdown(f"**Day {d}**  \n{DAY_NAMES[d]}  \n{state}")
+    if done > H.LAST_DAY:                                   # all 8 files saved: the tab is open
+        if cols[8].button("📊 Final Dashboard", type="primary", key="open_dash"):
+            st.session_state["demo_view"] = "dashboard"
+            st.rerun()
+    else:
+        cols[8].markdown("**Final Dashboard**  \n:gray[🔒 opens after Day 7]")
     st.progress(done / 8)
 
 
@@ -66,13 +73,14 @@ def compact_uploader_css(day):
 </style>""", unsafe_allow_html=True)
 
 
-def apply_bulk(day, ids, bulk_key):
-    """Callback: give the chosen action to every batch currently shown."""
+def apply_bulk(day, ids, bulk_key, label):
+    """Callback: give the chosen action to EVERY batch in the selection (not only the rows on screen)."""
     action = st.session_state[bulk_key]
     acts = st.session_state.setdefault(f"acts_{day}", {})
     for b in ids:
         acts[b] = action
-        st.session_state[f"act_{day}_{b}"] = action
+        st.session_state.pop(f"act_{day}_{b}", None)        # row boxes restart from the saved choice
+    st.session_state[f"applied_{day}"] = f"Applied **{action}** to all {len(ids)} {label} batches."
 
 
 def day_step(day, hist, model_name, tracker):
@@ -113,7 +121,7 @@ def day_step(day, hist, model_name, tracker):
         else:
             scored["action"] = [acts.get(b, "Not decided") for b in scored["batch_id"]]
         H.save_day(day, scored, model_name)
-        prefixes = (f"up_{day}", f"demo_{day}", f"act_{day}_", f"acts_{day}", f"fcat_{day}", f"flvl_{day}", f"bulk_{day}")
+        prefixes = (f"up_{day}", f"demo_{day}", f"act_{day}_", f"acts_{day}", f"fcat_{day}", f"flvl_{day}", f"bulk_{day}", f"applied_{day}")
         for k in [k for k in st.session_state if str(k).startswith(prefixes)]:
             st.session_state.pop(k, None)
         st.rerun()
@@ -136,22 +144,25 @@ def day_step(day, hist, model_name, tracker):
 
 
 def filter_bar(day, scored, acts):
-    """Dropdowns to show one category / one risk type, and one action for all rows shown."""
-    c = st.columns([1.5, 1.5, 2.2, 1.8])
-    cat = c[0].selectbox("Category", ["All"] + sorted(scored["category"].unique()), key=f"fcat_{day}")
-    lvl = c[1].selectbox("Risk type", ["All", "High", "Medium", "Low"], key=f"flvl_{day}")
+    """Step 1 pick a risk type (and optionally a category). Step 2 pick an action. Step 3 Apply to all of them."""
+    c = st.columns([1.4, 1.4, 2.2, 2.2])
+    lvl = c[0].selectbox("1. Risk type", ["All", "High", "Medium", "Low"], key=f"flvl_{day}")
+    cat = c[1].selectbox("Category (optional)", ["All"] + sorted(scored["category"].unique()), key=f"fcat_{day}")
     view = scored
-    if cat != "All":
-        view = view[view["category"] == cat]
     if lvl != "All":
         view = view[view["level"] == lvl]
+    if cat != "All":
+        view = view[view["category"] == cat]
+    label = " ".join(x for x in [lvl if lvl != "All" else "", cat if cat != "All" else ""] if x) + (" risk" if lvl != "All" and cat == "All" else "")
+    label = label.strip() or "all"
     if day > 0:
-        c[2].selectbox("Action for all rows shown", S.ACTIONS[1:], index=S.ACTIONS[1:].index("Discount 50%"), key=f"bulk_{day}")
+        c[2].selectbox("2. Action for all of them", S.ACTIONS[1:], index=S.ACTIONS[1:].index("Discount 50%"), key=f"bulk_{day}")
         c[3].markdown("<div style='height:1.75rem'></div>", unsafe_allow_html=True)
-        c[3].button(f"Apply to {len(view)} rows", key=f"apply_{day}", on_click=apply_bulk,
-                    args=(day, list(view["batch_id"]), f"bulk_{day}"))
-        st.caption(f"Showing {len(view)} of {len(scored)} batches. Pick a category and risk type, choose an action, click Apply "
-                   "to give it to all rows shown, or choose an action row by row.")
+        c[3].button(f"3. Apply to all {len(view)} {label} batches", key=f"apply_{day}", on_click=apply_bulk,
+                    args=(day, list(view["batch_id"]), f"bulk_{day}", label))
+        if st.session_state.get(f"applied_{day}"):
+            st.success(st.session_state[f"applied_{day}"])
+        st.caption(f"Showing {len(view)} of {len(scored)} batches. You can still change any single row in the Action taken column.")
     else:
         st.caption(f"Showing {len(view)} of {len(scored)} batches.")
     return view
@@ -292,7 +303,7 @@ def demo_page():
         st.session_state["page"] = "home"
         st.rerun()
     st.title("Demo")
-    st.caption("A week of daily uploads for one store. Each evening: upload, check, predict, act. After Day 7 the final dashboard opens.")
+    st.caption("A week of daily uploads for one store. Each evening: upload, check, predict, act. After Day 7 the Final Dashboard tab unlocks.")
 
     if not S.models_ready():
         st.warning("Models are not trained yet.")
@@ -315,10 +326,16 @@ def demo_page():
         model_name = locked or "Decision Tree"
         st.caption(f"Model: **{model_name}** (fixed for the week)  |  Store: **{hist[0]['store_id'].iloc[0]}**")
 
+    view_mode = st.session_state.get("demo_view", "days")
     if done <= H.LAST_DAY:
         day_step(done, hist, model_name, tracker)
-    else:
+    elif view_mode == "dashboard":
+        if st.button("< Back to the days"):
+            st.session_state["demo_view"] = "days"
+            st.rerun()
         final_dashboard(hist)
+    else:
+        st.success("All 8 files are uploaded. Click the **Final Dashboard** tab on the right of the days to open it.")
 
     if hist:
         with st.expander("Earlier days"):
@@ -332,6 +349,6 @@ def demo_page():
             st.dataframe(view, hide_index=True)
         if st.button("Reset demo (start again)"):
             H.reset()
-            for k in [k for k in st.session_state if k.startswith(("up_", "demo_"))]:
+            for k in [k for k in st.session_state if str(k).startswith(("up_", "demo_", "act_", "fcat_", "flvl_", "bulk_"))]:
                 st.session_state.pop(k)
             st.rerun()
