@@ -76,28 +76,31 @@ def background():
 
 def page_css():
     uri, is_photo = background()
-    # a photo needs a stronger dark-green tint so the white text stays readable
-    tint = "rgba(4,28,19,0.60), rgba(4,28,19,0.80)" if is_photo else "rgba(5,32,22,0.62), rgba(5,32,22,0.82)"
+    # a photo needs a dark-green tint so the white text stays readable
+    tint = "rgba(4,28,19,0.50), rgba(4,28,19,0.72)" if is_photo else "rgba(5,32,22,0.62), rgba(5,32,22,0.82)"
     return f"""<style>
 .stApp {{ background: linear-gradient({tint}), url("{uri}") center / cover no-repeat fixed; }}
 header[data-testid="stHeader"] {{ background: transparent; }}
-.block-container {{ max-width: 980px; padding-top: 4.5rem; }}
-.hero {{ text-align: center; color: #ffffff; }}
-.hero img.logo {{ width: 84px; height: 84px; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.4)); }}
-.hero .brand {{ font-size: 3.4rem; font-weight: 800; letter-spacing: 0.5px; margin: 0.2rem 0 0; line-height: 1.1; }}
-.hero .tag {{ font-size: 1.75rem; font-weight: 600; margin: 0.6rem 0 0.2rem; color: #d9ffe9; }}
-.hero .sub {{ font-size: 1.05rem; opacity: 0.92; margin-bottom: 2.6rem; }}
-.hero .brand, .hero .tag, .hero .sub {{ text-shadow: 0 2px 12px rgba(0,0,0,0.55); }}
-.hero img.art {{ width: min(520px, 90%); margin: 0.4rem 0 1.4rem; filter: drop-shadow(0 14px 22px rgba(0,0,0,0.45)); }}
-.hero .foot {{ font-size: 0.8rem; opacity: 0.7; margin-top: 1.6rem; }}
-.st-key-go_details button, .st-key-go_demo button {{ width: 100%; height: 3.4rem; border-radius: 999px; font-weight: 700; border: 2px solid #ffffff;
+.block-container {{ max-width: 1280px; padding-top: 14vh; padding-left: 4.5rem; padding-right: 2rem; }}
+.st-key-hero_card {{ max-width: 540px; padding: 2.4rem 2.4rem 1.8rem; border-radius: 28px; background: rgba(4,28,19,0.58);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 18px 50px rgba(0,0,0,0.45); }}
+.hero {{ text-align: left; color: #ffffff; }}
+.hero img.logo {{ width: 72px; height: 72px; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.4)); }}
+.hero .brand {{ font-size: 3.3rem; font-weight: 800; letter-spacing: 0.5px; margin: 0.3rem 0 0; line-height: 1.1; }}
+.hero .tag {{ font-size: 1.45rem; font-weight: 600; margin: 0.7rem 0 0.3rem; color: #d9ffe9; line-height: 1.3; }}
+.hero .sub {{ font-size: 1rem; opacity: 0.92; margin-bottom: 1.8rem; }}
+.hero img.art {{ width: min(420px, 90%); margin: 0.4rem 0 1.4rem; filter: drop-shadow(0 14px 22px rgba(0,0,0,0.45)); }}
+.hero .foot {{ font-size: 0.8rem; opacity: 0.75; margin-top: 1.4rem; }}
+.st-key-go_details button, .st-key-go_demo button {{ width: 100%; height: 3.6rem; border-radius: 999px; font-weight: 700; border: 2px solid #ffffff;
     box-shadow: 0 8px 20px rgba(0,0,0,0.35); }}
-.st-key-go_details button p, .st-key-go_demo button p {{ font-size: 1.15rem; font-weight: 700; }}
+.st-key-go_details button p, .st-key-go_demo button p {{ font-size: 1.1rem; font-weight: 700; }}
 .st-key-go_details button {{ background: #ffffff; color: #0d3b2a; }}
 .st-key-go_details button p {{ color: #0d3b2a; }}
 .st-key-go_demo button {{ background: #2e9e6b; color: #ffffff; }}
 .st-key-go_demo button p {{ color: #ffffff; }}
 .st-key-go_details button:hover, .st-key-go_demo button:hover {{ transform: translateY(-2px); border-color: #d9ffe9; }}
+@media (max-width: 700px) {{ .block-container {{ padding-left: 1rem; padding-top: 6vh; }} }}
 </style>"""
 
 
@@ -114,12 +117,17 @@ def hero_html():
 
 def landing():
     st.markdown(page_css(), unsafe_allow_html=True)
-    st.markdown(hero_html(), unsafe_allow_html=True)
-    _, c1, c2, _ = st.columns([1, 2, 2, 1])            # the two tabs, centred and equal width
-    if c1.button("Model Train Details", key="go_details"):
-        st.session_state["page"] = "details"
-        st.rerun()
-    if c2.button("Demo", key="go_demo"):
-        st.session_state["page"] = "demo"
-        st.rerun()
-    st.markdown('<div class="hero"><div class="foot">KNN and Decision Tree models - simulated retail data</div></div>', unsafe_allow_html=True)
+    try:
+        card = st.container(key="hero_card")          # glass card on the left; needs a recent Streamlit
+    except TypeError:
+        card = st.container()
+    with card:
+        st.markdown(hero_html(), unsafe_allow_html=True)
+        c1, c2 = st.columns(2)                        # the two big round tabs
+        if c1.button("Model Train Details", key="go_details"):
+            st.session_state["page"] = "details"
+            st.rerun()
+        if c2.button("Demo", key="go_demo"):
+            st.session_state["page"] = "demo"
+            st.rerun()
+        st.markdown('<div class="hero"><div class="foot">KNN and Decision Tree models - simulated retail data</div></div>', unsafe_allow_html=True)
