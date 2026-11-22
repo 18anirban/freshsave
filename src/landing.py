@@ -65,25 +65,29 @@ def _uri(svg):
     return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
 
 
-def background_uri():
-    """Your own photo (assets/background.jpg|jpeg|png) if present, else the generated backdrop."""
+def background():
+    """(uri, is_photo): your photo assets/background.jpg|jpeg|png if present, else the generated backdrop."""
     for name, mime in [("background.jpg", "jpeg"), ("background.jpeg", "jpeg"), ("background.png", "png")]:
         f = ASSETS / name
         if f.exists():
-            return f"data:image/{mime};base64," + base64.b64encode(f.read_bytes()).decode()
-    return _uri(BACKDROP_SVG)
+            return f"data:image/{mime};base64," + base64.b64encode(f.read_bytes()).decode(), True
+    return _uri(BACKDROP_SVG), False
 
 
 def page_css():
+    uri, is_photo = background()
+    # a photo needs a stronger dark-green tint so the white text stays readable
+    tint = "rgba(4,28,19,0.60), rgba(4,28,19,0.80)" if is_photo else "rgba(5,32,22,0.62), rgba(5,32,22,0.82)"
     return f"""<style>
-.stApp {{ background: linear-gradient(rgba(5,32,22,0.62), rgba(5,32,22,0.82)), url("{background_uri()}") center / cover fixed; }}
+.stApp {{ background: linear-gradient({tint}), url("{uri}") center / cover no-repeat fixed; }}
 header[data-testid="stHeader"] {{ background: transparent; }}
-.block-container {{ max-width: 980px; padding-top: 2.2rem; }}
+.block-container {{ max-width: 980px; padding-top: 4.5rem; }}
 .hero {{ text-align: center; color: #ffffff; }}
 .hero img.logo {{ width: 84px; height: 84px; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.4)); }}
 .hero .brand {{ font-size: 3.4rem; font-weight: 800; letter-spacing: 0.5px; margin: 0.2rem 0 0; line-height: 1.1; }}
 .hero .tag {{ font-size: 1.75rem; font-weight: 600; margin: 0.6rem 0 0.2rem; color: #d9ffe9; }}
-.hero .sub {{ font-size: 1.05rem; opacity: 0.88; margin-bottom: 1.2rem; }}
+.hero .sub {{ font-size: 1.05rem; opacity: 0.92; margin-bottom: 2.6rem; }}
+.hero .brand, .hero .tag, .hero .sub {{ text-shadow: 0 2px 12px rgba(0,0,0,0.55); }}
 .hero img.art {{ width: min(520px, 90%); margin: 0.4rem 0 1.4rem; filter: drop-shadow(0 14px 22px rgba(0,0,0,0.45)); }}
 .hero .foot {{ font-size: 0.8rem; opacity: 0.7; margin-top: 1.6rem; }}
 .st-key-go_details button, .st-key-go_demo button {{ width: 100%; height: 3.4rem; border-radius: 999px; font-weight: 700; border: 2px solid #ffffff;
@@ -98,12 +102,13 @@ header[data-testid="stHeader"] {{ background: transparent; }}
 
 
 def hero_html():
+    art = "" if background()[1] else f'<img class="art" src="{_uri(HERO_SVG)}">'      # the drawn crate is only for the no-photo look
     return f"""<div class="hero">
 <img class="logo" src="{_uri(LOGO_SVG)}">
 <div class="brand">{BRAND}</div>
 <div class="tag">{TAGLINE}</div>
 <div class="sub">{SUBLINE}</div>
-<img class="art" src="{_uri(HERO_SVG)}">
+{art}
 </div>"""
 
 
