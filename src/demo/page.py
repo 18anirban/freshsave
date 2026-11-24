@@ -49,6 +49,22 @@ def show_tracker(slot, done, status):
         day_tracker(done, status)
 
 
+def reset_demo():
+    """Start the whole week again: delete saved days and clear every widget choice."""
+    H.reset()
+    for k in [k for k in st.session_state if str(k).startswith(("up_", "demo_", "act_", "acts_", "fcat_", "flvl_", "bulk_", "applied_"))]:
+        st.session_state.pop(k)
+    st.session_state["demo_view"] = "days"
+
+
+def show_top_tick(slot, day=None):
+    """Green tick at the top (beside Resimulate) once the day's file is uploaded."""
+    if day is None:
+        slot.empty()
+    else:
+        slot.markdown(f"### :green[✔ Day {day} file uploaded]")
+
+
 def step_line(flags):
     """Mini checklist for the day in progress."""
     names = ["File uploaded", "File checked", "Risk predicted", "Action recorded", "Day saved"]
@@ -83,7 +99,7 @@ def apply_bulk(day, ids, bulk_key, label):
     st.session_state[f"applied_{day}"] = f"Applied **{action}** to all {len(ids)} {label} batches."
 
 
-def day_step(day, hist, model_name, tracker):
+def day_step(day, hist, model_name, tracker, tick):
     title = ("Opening stock: inventory loaded on Saturday night, before any sales" if day == 0
              else f"{DAY_NAMES[day]} evening closing report (sales of the day and stock left)")
     st.subheader(f"Day {day} - upload: {title}")
@@ -111,6 +127,7 @@ def day_step(day, hist, model_name, tracker):
         show_tracker(tracker, day, "error")
         st.stop()
     show_tracker(tracker, day, "uploaded")
+    show_top_tick(tick, day)
     st.success(f"File OK: {len(df)} batches, store {df['store_id'].iloc[0]}, date {df['date'].iloc[0]}.")
 
     scored = S.score(df, model_name, get_model(model_name))
@@ -302,7 +319,10 @@ def demo_page():
     if st.button("< Back"):
         st.session_state["page"] = "home"
         st.rerun()
-    st.title("Demo")
+    c_title, c_reset, c_tick = st.columns([2, 2, 4], vertical_alignment="center")
+    c_title.title("Demo")
+    c_reset.button("🔄 Resimulate", key="resimulate", on_click=reset_demo, help="Delete the saved days and start the week again from Day 0.")
+    tick = c_tick.empty()
     st.caption("A week of daily uploads for one store. Each evening: upload, check, predict, act. After Day 7 the Final Dashboard tab unlocks.")
 
     if not S.models_ready():
@@ -328,7 +348,7 @@ def demo_page():
 
     view_mode = st.session_state.get("demo_view", "days")
     if done <= H.LAST_DAY:
-        day_step(done, hist, model_name, tracker)
+        day_step(done, hist, model_name, tracker, tick)
     elif view_mode == "dashboard":
         if st.button("< Back to the days"):
             st.session_state["demo_view"] = "days"
@@ -347,8 +367,3 @@ def demo_page():
                 view["Suggested by Model"] = h["suggested"]
                 view["Action taken"] = h["action"]
             st.dataframe(view, hide_index=True)
-        if st.button("Reset demo (start again)"):
-            H.reset()
-            for k in [k for k in st.session_state if str(k).startswith(("up_", "demo_", "act_", "fcat_", "flvl_", "bulk_"))]:
-                st.session_state.pop(k)
-            st.rerun()
